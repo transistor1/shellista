@@ -49,7 +49,7 @@ import urllib2
 #  - git log - doesn't currently work
 # - untgz - a convenience wrapper to untar and ungzip at the same time
 #  - Also ripped @mark_tully's wget - thanks Mark!
-# - Simple Python sub-shell by typing 'shell' or '!'
+# - Simple Python sub-shell by typing 'shell', 'python', or '!'
 #  - Running a file directly doesn't work (e.g. 'python somefile.py'), though I tried
 #  - Single-line commands only
 
