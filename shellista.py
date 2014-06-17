@@ -1,7 +1,7 @@
 import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip
 import string
 import urllib2
-from dulwich.client import default_user_agent_string
+
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
 DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
@@ -1001,6 +1001,8 @@ def _shellista_setup():
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
 	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
+	if dulwich:
+		from dulwich.client import default_user_agent_string
 
 _shellista_setup()
 
