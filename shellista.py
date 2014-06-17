@@ -1,13 +1,32 @@
 import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip
 import string
+import urllib2
+from dulwich.client import default_user_agent_string
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
+#DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.4.tar.gz'
 DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
 #DULWICH_URL='https://github.com/AaronO/dulwich/tarball/eebb032b2b7b982d21d636ac50b6e45de58b208b#egg=dulwich-0.9.1-2'
+
+#DULWICH_URL='https://github.com/jelmer/dulwich/archive/f48da405a2b20de0542eb3febd5bbfaed71a9ecb.tar.gz'
+#'()'
+#DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.1.tar.gz'
+
+
+#GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
+
 GITTLE_URL='https://pypi.python.org/packages/source/g/gittle/gittle-0.3.0.tar.gz'
 #FUNKY_URL='https://pypi.python.org/packages/source/f/funky/funky-0.0.2.tar.gz'
+
+#        'https://github.com/AaronO/dulwich/tarball/eebb032b2b7b982d21d636ac50b6e45de58b208b#egg=dulwich-0.9.1-2',
+#        'https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1',
+#        'https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1',
+
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
-MIMER_URLS=['https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimer.py', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/exceptions.json', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimetypes.json']
+
+MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
+
+#MIMER_URLS=['https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimer.py', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/exceptions.json', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimetypes.json']
 
 # Credits
 #
@@ -290,14 +309,14 @@ class Shell(cmd.Cmd):
 	#WGet clone by Mark Tully - https://gist.github.com/mctully/4367145
 	def do_wget(self,line):
 		'''WGet clone
-wget: usage "wget URL [optional output filename]"
+		wget: usage "wget URL [optional output filename]"
 		'''
 		args=self.bash(line)
 		if len(args)<1 or len(args)>2:
 			print 'wget: usage "wget URL [optional output filename]"'
 		else:
 			self.wget(args)
-			
+
 	def wget(self, args):
 		import urllib2,contextlib
 		url=args[0]
@@ -316,25 +335,25 @@ wget: usage "wget URL [optional output filename]"
 						print 'downloaded %d bytes'%total
 		except Exception as e:
 			print 'wget: error',e
-	
+
 	def do_git(self,line):
 		'''Very basic Git commands: init, stage, commit, clone, modified
 		'''
 		from gittle import Gittle
-		
+
 		def git_init(args):
 			if len(args) == 1:
 				Gittle.init(args[0])
 			else:
-				print 'git init <directory>'
-		
-		def git_stage(args):
+				print command_help['init']
+
+		def git_add(args):
 			if len(args) > 0:
 				repo = Gittle('.')
 				repo.stage(args)
 			else:
-				print 'git stage <file1> .. [file2] ..'
-				
+				print command_help['add']
+
 		def git_commit(args):
 			if len(args) == 3:
 				try:
@@ -343,79 +362,79 @@ wget: usage "wget URL [optional output filename]"
 				except:
 					print 'Error: {0}'.format(sys.exc_value)
 			else:
-				print 'git commit <message> <name> <email>'
-		
+				print command_help['commit']
+
 		def git_clone(args):
 			if len(args) > 0:
 				Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
 			else:
-				print 'git clone <url> [path]'
-				
+				print command_help['clone']
+
 		def git_push(args):
 			from gittle import GittleAuth
-			if len(args) == 1 or len(args) == 3: 
+			if len(args) == 1 or len(args) == 3:
 				if len(args) > 1:
 					user = args[1]
 					pw = args[2]
-					auth = GittleAuth(username=user,password=pw)
-					repo = Gittle('.', origin_uri=args[0], auth=auth)
-					repo.push()
+					repo = Gittle('.')
+					print repo.push_to(args[0],username=user,password=pw)
 				else:
+					repo = Gittle('.', origin_uri=args[0])
 					repo.push()
 			else:
-				print 'git push <remote repo> [username password]'
-				
+				print command_help['push']
+
 		def git_modified(args):
 			repo = Gittle('.')
 			for mod_file in repo.modified_files:
 				print mod_file
-			
+
 		def git_log(args):
 			if len(args) == 0:
 				repo = Gittle('.')
 				print repo.log()
 			else:
-				print 'git log'
-				
+				print command_help['log']
+
 		def git_help(args):
 			print 'help:'
 			for key, value in command_help.items():
 				print value
-			
+
 		commands = {
-		            'init': git_init
-		            ,'stage': git_stage
-		            ,'commit': git_commit
-		            ,'clone': git_clone
-		            ,'modified': git_modified
-		            ,'log': git_log
-		            ,'push': git_push
-		            ,'help': git_help
-		            }
-		
+		'init': git_init
+		,'add': git_add
+		,'commit': git_commit
+		,'clone': git_clone
+		,'modified': git_modified
+		,'log': git_log
+		,'push': git_push
+		,'help': git_help
+		}
+
 		command_help = {
-		        		'init': 'git init <directory>'
-		            ,'stage': 'git stage <file1> .. [file2] ..'
-		            ,'commit': 'git commit <message> <name> <email>'
-		            ,'clone': 'git clone <url> [path]'
-		            ,'modified': 'git modified'
-		            ,'log': 'git log'
-		            ,'push': 'git push <remote repo> [username password]'
-		            ,'help': 'git help'
-		        }
-		            
+		'init': 'git init <directory>'
+		,'add': 'git add <file1> .. [file2] ..'
+		,'commit': 'git commit <message> <name> <email>'
+		,'clone': 'git clone <url> [path]'
+		,'modified': 'git modified'
+		,'log': 'git log'
+		,'push': 'git push <remote repo> [username password]'
+		,'help': 'git help'
+		}
+
 		#git_init.__repr__ = "git init abc"
-		
+
 		args = self.bash(line)
-		
+
 		try:
 			#Call the command and pass args
 			cmd = commands.get(args[0] if len(args) > 0 else 'help','help')
 			cmd(args[1:])
 		except:
-			print 'Error: {0}'.format(sys.exc_value)						
+			print 'Error: {0}'.format(sys.exc_value)
 
-			
+
 	def do_untgz(self, file):
 		'''Helper to run both ungzip and untar on a file'''
 		result = self.do_ungzip(file, gunzip=True)
@@ -429,10 +448,10 @@ wget: usage "wget URL [optional output filename]"
 		'''Python shell'''
 		args = self.bash(line)
 		#Save the old path, in case user messes with it in shell
-		
+
 		with _save_context():
 			sys.path.append(os.getcwd())
-			
+
 			if len(args)==0:
 				print 'Entering Python shell'
 				p = PyShell()
@@ -447,7 +466,7 @@ wget: usage "wget URL [optional output filename]"
 					execfile(os.path.join(os.getcwd(),args[0]), tmpg, tmpl)
 				except:
 					print 'Error: {0}'.format(sys.exc_value)
-		
+
 	def do_pdown(self, modulename):
 		'''Download a module from pypi'''
 		try:
@@ -944,14 +963,14 @@ wget: usage "wget URL [optional output filename]"
 
 
 def _global_import(modulename):
-		module = __import__(modulename,globals(),locals())
-		globals()[modulename]=module	
+	module = __import__(modulename,globals(),locals())
+	globals()[modulename]=module
 
 def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 	'''import optional modules, downloading if possible. Disable
-		 shell functionality if the module can't be loaded.'''
+	shell functionality if the module can't be loaded.'''
 	try:
-		#os.chdir('~')
+	#os.chdir('~')
 		_global_import(modulename)
 	except:
 		print 'Requires {0} ... attempting to download.'.format(modulename)
@@ -970,98 +989,176 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 			for f in shellfuncs:
 				#Delete commands that we can't get dependencies for1
 				exec('del Shell.{0}'.format(f), globals(), locals())
-				
+
 
 def _extract_dulwich(shell, path):
 	shell.do_untgz('dulwich.tar.gz')
 	#shell.do_mv('dulwich/dulwich-0.9.7/dulwich .')
-	shell.do_cd('dulwich/dulwich-0.9.7')
+	shell.do_cd('dulwich/*')
 	#shell.do_cd('dulwich/AaronO-dulwich-eebb032')
 	shell.do_mv('dulwich ../../..')
 	shell.do_cd('../..')
-	
+
 def _extract_pipista(shell, path):
 	shell.do_mv('pipista.py ..')
 
 def _extract_gittle(shell, path):
 	shell.do_untgz('gittle.tar.gz')
-	shell.do_cd('gittle/gittle-0.3.0')
+	shell.do_cd('gittle/gittle*')
 	shell.do_mv('gittle ../../..')
 	shell.do_cd('../..')
 
-def _extract_mimer():	
-	try:
-		import mimer
-	except:
-		s = Shell()
-		for i in MIMER_URLS:
-			s.do_wget(i)
-		try:
-			import mimer
-		except:
-			print 'Error importing mimer, continuing without.'
-	
-	
+def _extract_mimer(shell, path):
+	shell.do_untgz('mimer.tar.gz')
+	shell.do_mv('mimer/*/mimer ..')
+
 def _extract_funky(shell, path):
 	shell.do_untgz('funky.tar.gz')
-	shell.do_mv('funky/FriendCode-funky-e89cb2c/funky ..')
-	#shell.do_mv('funky/funky-0.0.2/funky ..')
-	#shell.do_mv('funky ../../..')
-	#shell.do_cd('../..')
+	shell.do_mv('funky/*/funky ..')
 
 def _shellista_setup():
 	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
-	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])	
-	_extract_mimer()
+	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])
+	#_extract_mimer()
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
+	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
-		
+
 
 #def __shellista_setup():
-#	try:
-#		import pipista
-#		global pipista
-#	except:
-#		print 'Requires pipista ... attempting to download.'
-#		s = Shell()
-#		s.wget([PIPISTA_URL, 'pipista.py'])
+#   try:
+#       import pipista
+#       global pipista
+#   except:
+#       print 'Requires pipista ... attempting to download.'
+#       s = Shell()
+#       s.wget([PIPISTA_URL, 'pipista.py'])
 #
-#	#Retry the import, if it is needed
-#	if not locals().get('pipista'):
-#		try:
-#			import pipista
-#			global pipista
-#		except:
-#			print 'Error importing pipista. Continuing without.'
-#			#Remove the pipista-specific functions
-#			Shell.do_psrch = None
-#			Shell.do_pdown = None
-#	try:
-#		from dulwich.repo import Repo
-#		global repo
-#	except:
-#		print 'Requires dulwich ... attempting to download.'
-#		if Shell.do_pdown:
-#			s = Shell()
-#			s.do_mkdir('.shellista')
-#			s.do_cd('.shellista')
-#			s.do_pdown('dulwich')		
+#   #Retry the import, if it is needed
+#   if not locals().get('pipista'):
+#       try:
+#           import pipista
+#           global pipista
+#       except:
+#           print 'Error importing pipista. Continuing without.'
+#           #Remove the pipista-specific functions
+#           Shell.do_psrch = None
+#           Shell.do_pdown = None
+#   try:
+#       from dulwich.repo import Repo
+#       global repo
+#   except:
+#       print 'Requires dulwich ... attempting to download.'
+#       if Shell.do_pdown:
+#           s = Shell()
+#           s.do_mkdir('.shellista')
+#           s.do_cd('.shellista')
+#           s.do_pdown('dulwich')
 
 _shellista_setup()
 
 import contextlib
 @contextlib.contextmanager
 def _save_context():
-    sys._argv = sys.argv[:]
-    sys._path = sys.path[:]
-    yield
-    sys.argv = sys._argv
-    sys.path = sys._path
+	sys._argv = sys.argv[:]
+	sys._path = sys.path[:]
+	yield
+	sys.argv = sys._argv
+	sys.path = sys._path
 
 #with redirect_argv(1):
 #    print(sys.argv)
+# This method is monkey-patched into dulwich's HttpGitClient
+# in order for it to be capable of dealing with HTTP/S basic
+# authentication.
+#def _perform(self, req):
+#   """Perform an HTTP/S request with optional authentication.
+#   If the URI requested matches an entry from an hgrc [auth]
+#   block, then we add the appropriate "Authentication" header
+#   to satisfy basic authentication of the request.
+#
+#   :param req: urllib2.Request instance
+#   :return: matching response
+#   """
+#   import base64, urllib2
+#
+#   prefix = None
+#   for item in ui.configitems('auth'):
+#       if len(item) < 2:
+#           continue
+#       if item[0].endswith('.prefix') and uri.startswith(item[1]):
+#           prefix = item[0][:-len('.prefix')]
+#           break
+#
+#       if prefix:
+#           ui.note(_('using "%s" auth credentials\n') % (prefix,))
+#           username = ui.config('auth', '%s.username' % prefix)
+#           password = ui.config('auth', '%s.password' % prefix)
+#           base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
+#           req.add_header("Authorization", "Basic %s" % base64string)
+#       return urllib2.urlopen(req)
+
+#def _http_request(self, url, headers={}, data=None):
+#   req = urllib2.Request(url, headers=headers, data=data)
+#   try:
+#       resp = self.opener.open(req)
+#   except urllib2.HTTPError as e:
+#       if e.code == 404:
+##          raise NotGitRepository()
+#       if e.code != 200:
+#           raise GitProtocolError("unexpected http response %d" % e.code)
+#       return resp
+
+#Monkeypatch for gittle's push_to
+def push_to(self, origin_uri, branch_name=None, progress=None, username=None, password=None):
+	selector = self._wants_branch(branch_name=branch_name)
+	client, remote_path = self.get_client(origin_uri)
+	if username and password:
+		client.opener = auth_urllib2_opener(None, origin_uri, username, password)
+		
+	return client.send_pack(
+		remote_path,
+		selector,
+		self.repo.object_store.generate_pack_contents,
+		progress=progress
+	)
+
+
+#Urllib2 opener for dulwich
+def auth_urllib2_opener(config, top_level_url, username, password):
+	if config is not None:
+		proxy_server = config.get("http", "proxy")
+	else:
+		proxy_server = None
+
+	# create a password manager
+		password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+
+		# Add the username and password.
+		# If we knew the realm, we could use it instead of None.
+		#top_level_url = "http://example.com/foo/"
+		password_mgr.add_password(None, top_level_url, username, password)
+
+		handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+
+	handlers = [handler]
+	if proxy_server is not None:
+		handlers.append(urllib2.ProxyHandler({"http": proxy_server}))
+	opener = urllib2.build_opener(*handlers)
+	if config is not None:
+		user_agent = config.get("http", "useragent")
+	else:
+		user_agent = None
+	if user_agent is None:
+		user_agent = default_user_agent_string()
+	opener.addheaders = [('User-agent', user_agent)]
+	return opener
 
 def main():
+	#from dulwich.client import HttpGitClient
+	#HttpGitClient._perform = _perform
+	from gittle import Gittle
+	Gittle.push_to = push_to
 	shell = Shell()
 	shell.prompt = '> '
 	shell.cmdloop()
