@@ -35,10 +35,10 @@ import urllib2
 # This has advantages over shlex, glob, and shlex->glob in that it expects
 # the strings to represent files from the start.
 
-#Modified by svrusso1@gmail.com:
+#Modified by transistor1 (svrusso1 - at - gmail - dot - com):
 # - Integrate minimal pipista functionality
-#   - pdown - PyPi download
-#   - psrc - PyPi search
+#  - pdown - PyPi download
+#  - psrch - PyPi search
 # - Minimal Git functionality
 #  - git init - Initialize git repo
 #  - git add - Stage one or more files
@@ -47,6 +47,12 @@ import urllib2
 #  - git push - push commits via web
 #  - git modified - see which files are currently modified
 #  - git log - doesn't currently work
+# - untgz - a convenience wrapper to untar and ungzip at the same time
+#  - Also ripped @mark_tully's wget - thanks Mark!
+# - Simple Python sub-shell by typing 'shell' or '!'
+#  - Running a file directly doesn't work (e.g. 'python somefile.py'), though I tried
+#  - Single-line commands only
+
 
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
