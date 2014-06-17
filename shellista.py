@@ -4,29 +4,10 @@ import urllib2
 from dulwich.client import default_user_agent_string
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
-#DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.4.tar.gz'
 DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
-#DULWICH_URL='https://github.com/AaronO/dulwich/tarball/eebb032b2b7b982d21d636ac50b6e45de58b208b#egg=dulwich-0.9.1-2'
-
-#DULWICH_URL='https://github.com/jelmer/dulwich/archive/f48da405a2b20de0542eb3febd5bbfaed71a9ecb.tar.gz'
-#'()'
-#DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.1.tar.gz'
-
-
-#GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
-
 GITTLE_URL='https://pypi.python.org/packages/source/g/gittle/gittle-0.3.0.tar.gz'
-#FUNKY_URL='https://pypi.python.org/packages/source/f/funky/funky-0.0.2.tar.gz'
-
-#        'https://github.com/AaronO/dulwich/tarball/eebb032b2b7b982d21d636ac50b6e45de58b208b#egg=dulwich-0.9.1-2',
-#        'https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1',
-#        'https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1',
-
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
-
 MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
-
-#MIMER_URLS=['https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimer.py', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/exceptions.json', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimetypes.json']
 
 # Credits
 #
@@ -993,9 +974,7 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 
 def _extract_dulwich(shell, path):
 	shell.do_untgz('dulwich.tar.gz')
-	#shell.do_mv('dulwich/dulwich-0.9.7/dulwich .')
 	shell.do_cd('dulwich/*')
-	#shell.do_cd('dulwich/AaronO-dulwich-eebb032')
 	shell.do_mv('dulwich ../../..')
 	shell.do_cd('../..')
 
@@ -1019,41 +998,9 @@ def _extract_funky(shell, path):
 def _shellista_setup():
 	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
 	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])
-	#_extract_mimer()
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
 	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
-
-
-#def __shellista_setup():
-#   try:
-#       import pipista
-#       global pipista
-#   except:
-#       print 'Requires pipista ... attempting to download.'
-#       s = Shell()
-#       s.wget([PIPISTA_URL, 'pipista.py'])
-#
-#   #Retry the import, if it is needed
-#   if not locals().get('pipista'):
-#       try:
-#           import pipista
-#           global pipista
-#       except:
-#           print 'Error importing pipista. Continuing without.'
-#           #Remove the pipista-specific functions
-#           Shell.do_psrch = None
-#           Shell.do_pdown = None
-#   try:
-#       from dulwich.repo import Repo
-#       global repo
-#   except:
-#       print 'Requires dulwich ... attempting to download.'
-#       if Shell.do_pdown:
-#           s = Shell()
-#           s.do_mkdir('.shellista')
-#           s.do_cd('.shellista')
-#           s.do_pdown('dulwich')
 
 _shellista_setup()
 
@@ -1065,49 +1012,6 @@ def _save_context():
 	yield
 	sys.argv = sys._argv
 	sys.path = sys._path
-
-#with redirect_argv(1):
-#    print(sys.argv)
-# This method is monkey-patched into dulwich's HttpGitClient
-# in order for it to be capable of dealing with HTTP/S basic
-# authentication.
-#def _perform(self, req):
-#   """Perform an HTTP/S request with optional authentication.
-#   If the URI requested matches an entry from an hgrc [auth]
-#   block, then we add the appropriate "Authentication" header
-#   to satisfy basic authentication of the request.
-#
-#   :param req: urllib2.Request instance
-#   :return: matching response
-#   """
-#   import base64, urllib2
-#
-#   prefix = None
-#   for item in ui.configitems('auth'):
-#       if len(item) < 2:
-#           continue
-#       if item[0].endswith('.prefix') and uri.startswith(item[1]):
-#           prefix = item[0][:-len('.prefix')]
-#           break
-#
-#       if prefix:
-#           ui.note(_('using "%s" auth credentials\n') % (prefix,))
-#           username = ui.config('auth', '%s.username' % prefix)
-#           password = ui.config('auth', '%s.password' % prefix)
-#           base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-#           req.add_header("Authorization", "Basic %s" % base64string)
-#       return urllib2.urlopen(req)
-
-#def _http_request(self, url, headers={}, data=None):
-#   req = urllib2.Request(url, headers=headers, data=data)
-#   try:
-#       resp = self.opener.open(req)
-#   except urllib2.HTTPError as e:
-#       if e.code == 404:
-##          raise NotGitRepository()
-#       if e.code != 200:
-#           raise GitProtocolError("unexpected http response %d" % e.code)
-#       return resp
 
 #Monkeypatch for gittle's push_to
 def push_to(self, origin_uri, branch_name=None, progress=None, username=None, password=None):
@@ -1122,7 +1026,6 @@ def push_to(self, origin_uri, branch_name=None, progress=None, username=None, pa
 		self.repo.object_store.generate_pack_contents,
 		progress=progress
 	)
-
 
 #Urllib2 opener for dulwich
 def auth_urllib2_opener(config, top_level_url, username, password):
