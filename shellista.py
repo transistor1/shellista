@@ -1,6 +1,4 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip
-import string
-import urllib2
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2
 
 # Credits
 #
@@ -268,6 +266,7 @@ class PyShell(cmd.Cmd):
 		self.exec_globals = globals()
 		self.exec_locals = {}
 	def do_quit(self, NoParams=None):
+		"""exit shell"""
 		self.did_quit = True
 	def emptyline(self):
 		pass
@@ -308,9 +307,9 @@ class Shell(cmd.Cmd):
 		return path
 	#WGet clone by Mark Tully - https://gist.github.com/mctully/4367145
 	def do_wget(self,line):
-		'''WGet clone
+		"""WGet clone
 		wget: usage "wget URL [optional output filename]"
-		'''
+		"""
 		args=self.bash(line)
 		if len(args)<1 or len(args)>2:
 			print 'wget: usage "wget URL [optional output filename]"'
@@ -337,8 +336,7 @@ class Shell(cmd.Cmd):
 			print 'wget: error',e
 
 	def do_git(self,line):
-		'''Very basic Git commands: init, stage, commit, clone, modified
-		'''
+		"""Very basic Git commands: init, stage, commit, clone, modified"""
 		from gittle import Gittle
 
 		def git_init(args):
@@ -436,16 +434,17 @@ class Shell(cmd.Cmd):
 
 
 	def do_untgz(self, file):
-		'''Helper to run both ungzip and untar on a file'''
+		"""Helper to run both ungzip and untar on a file"""
 		result = self.do_ungzip(file, gunzip=True)
 		if (result):
 			self.do_untar(result)
 			if os.path.isfile(result):
 				self.do_rm(result)
 	def do_shell(self, args):
+		"""Python shell"""
 		self.do_python(args)
 	def do_python(self,line):
-		'''Python shell'''
+		"""Python shell"""
 		args = self.bash(line)
 		#Save the old path, in case user messes with it in shell
 
@@ -468,13 +467,13 @@ class Shell(cmd.Cmd):
 					print 'Error: {0}'.format(sys.exc_value)
 
 	def do_pdown(self, modulename):
-		'''Download a module from pypi'''
+		"""Download a module from pypi"""
 		try:
 			pipista.pypi_download(modulename)
 		except pipista.PyPiError:
 			print 'Module {0} not found.'.format(modulename)
 	def do_psrch(self, search_term):
-		'''Search PyPi for a module'''
+		"""Search PyPi for a module"""
 		try:
 			results = pipista.pypi_search(search_term)
 			#print self.pprint( '{0}'.format(result) )
@@ -542,9 +541,9 @@ class Shell(cmd.Cmd):
 				if (not os.path.isdir(dest)):
 					print "cp: %s: No such directory" % self.pprint(dest)
 				else:
-					full_dest = os.path.abspath(dest).rstrip('/') + '/'
+					full_dest = os.path.normpath(os.path.abspath(dest)) + '/'
 					for filef in files:
-						full_file = os.path.abspath(filef).rstrip('/')
+						full_file = os.path.normpath(os.path.abspath(filef))
 						file_name = os.path.basename(full_file)
 						new_name  = os.path.join(full_dest,file_name)
 						if (not os.path.exists(full_file)):
@@ -557,9 +556,9 @@ class Shell(cmd.Cmd):
 			else:
 				# Moving a single file to a (pre-existing) directory or a file
 				filef = files[0]
-				full_file = os.path.abspath(filef).rstrip('/')
+				full_file = os.path.normpath(os.path.abspath(filef))
 				file_name = os.path.basename(full_file)
-				full_dest = os.path.abspath(dest).rstrip('/')
+				full_dest = os.path.normpath(os.path.abspath(dest))
 				if (os.path.isdir(full_dest)):
 					if (os.path.exists(full_file)):
 						try:
@@ -595,9 +594,9 @@ class Shell(cmd.Cmd):
 				if (not os.path.isdir(dest)):
 					print "cp: %s: No such directory" % self.pprint(dest)
 				else:
-					full_dest = os.path.abspath(dest).rstrip('/') + '/'
+					full_dest = os.path.normpath(os.path.abspath(dest)) + '/'
 					for filef in files:
-						full_file = os.path.abspath(filef).rstrip('/')
+						full_file = os.path.normpath(os.path.abspath(filef))
 						file_name = os.path.basename(full_file)
 						new_name  = os.path.join(full_dest,file_name)
 						if (not os.path.exists(full_file)):
@@ -613,9 +612,9 @@ class Shell(cmd.Cmd):
 			else:
 				# Copying a single file to a (pre-existing) directory or a file
 				filef = files[0]
-				full_file = os.path.abspath(filef).rstrip('/')
+				full_file = os.path.normpath(os.path.abspath(filef))
 				file_name = os.path.basename(full_file)
-				full_dest = os.path.abspath(dest).rstrip('/')
+				full_dest = os.path.normpath(os.path.abspath(dest))
 				new_name = os.path.join(full_dest,file_name)
 				if (os.path.isdir(full_dest)):
 					# Destination is a directory already
@@ -661,7 +660,7 @@ class Shell(cmd.Cmd):
 			print "rm: Usage: rm file_or_dir [...]"
 		else:
 			for filef in args:
-				full_file = os.path.abspath(filef).rstrip('/')
+				full_file = os.path.normpath(os.path.abspath(filef))
 				if not os.path.exists(filef):
 					print "! Skipping: Not found -", self.pprint(filef)
 					continue
@@ -708,9 +707,9 @@ class Shell(cmd.Cmd):
 			files = ['.']
 		files_for_path = dict()
 		for filef in files:
-			full_file = os.path.abspath(filef).rstrip('/')
+			full_file = os.path.normpath(os.path.abspath(filef))
 			file_name = os.path.basename(full_file)
-			dir_name  = os.path.dirname(full_file).rstrip('/')
+			dir_name  = os.path.normpath(os.path.dirname(full_file))
 			if (not os.path.exists(full_file)):
 				print "! Error: Skipped, missing -", self.pprint(filef)
 				continue
@@ -718,7 +717,7 @@ class Shell(cmd.Cmd):
 				# Need to add this as a key and all the files contained inside it
 				_dirs = files_for_path.get(full_file, set())
 				for new_file in os.listdir(full_file):
-					_dirs.add(full_file.rstrip('/') + '/' + new_file.rstrip('/'))
+					_dirs.add(os.path.normpath(full_file) + '/' + os.path.normpath(new_file))
 				files_for_path[full_file] = _dirs
 			else:
 				_dirs = files_for_path.get(dir_name, set())
@@ -726,7 +725,7 @@ class Shell(cmd.Cmd):
 				files_for_path[dir_name] = _dirs
 		# Iterate over the paths, in alphabetical order:
 		paths = sorted(files_for_path.keys())
-		cwd = os.getcwd().rstrip('/')
+		cwd = os.path.normpath(os.getcwd())
 		in_cwd = False
 		if (cwd in paths):
 			# Move cwd to the front, mark that it's present
@@ -739,12 +738,15 @@ class Shell(cmd.Cmd):
 			elif (not in_cwd):
 				print self.pprint(path) + "/:"
 			for filef in sorted(list(files_for_path[path])):
-				full_file = os.path.abspath(filef).rstrip('/')
+				full_file = os.path.normpath(os.path.abspath(filef))
 				file_name = os.path.basename(full_file)
 				if (os.path.isdir(full_file)):
 					print file_name + "/"
 				else:
-					print file_name + (" (%s)" % (self.sizeof_fmt(os.stat(full_file).st_size)))
+					try:
+						print file_name + (" (%s)" % (self.sizeof_fmt(os.stat(full_file).st_size)))
+					except OSError:
+						print file_name + " (OSError)"
 	def do_unzip(self, line):
 		"""unzip a zip archive"""
 		# filename with optional destination
@@ -949,14 +951,19 @@ class Shell(cmd.Cmd):
 		"""ungzip a gzip archive"""
 		self.do_ungzip(line, gunzip=True)
 	def do_quit(self,line):
+		"""exit shell"""
 		self.did_quit = True
 	def do_q(self,line):
+		"""exit shell"""
 		self.did_quit = True
 	def do_exit(self,line):
+		"""exit shell"""
 		self.did_quit = True
 	def do_logout(self,line):
+		"""exit shell"""
 		self.did_quit = True
 	def do_logoff(self,line):
+		"""exit shell"""
 		self.did_quit = True
 	def postcmd(self,stop,line):
 		return self.did_quit
@@ -967,8 +974,8 @@ def _global_import(modulename):
 	globals()[modulename]=module
 
 def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
-	'''import optional modules, downloading if possible. Disable
-	shell functionality if the module can't be loaded.'''
+	"""import optional modules, downloading if possible. Disable
+	shell functionality if the module can't be loaded."""
 	try:
 	#os.chdir('~')
 		_global_import(modulename)
