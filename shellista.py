@@ -3,8 +3,10 @@ import string
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
 DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
+#DULWICH_URL='https://github.com/AaronO/dulwich/tarball/eebb032b2b7b982d21d636ac50b6e45de58b208b#egg=dulwich-0.9.1-2'
 GITTLE_URL='https://pypi.python.org/packages/source/g/gittle/gittle-0.3.0.tar.gz'
-FUNKY_URL='https://pypi.python.org/packages/source/f/funky/funky-0.0.2.tar.gz'
+#FUNKY_URL='https://pypi.python.org/packages/source/f/funky/funky-0.0.2.tar.gz'
+FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
 MIMER_URLS=['https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimer.py', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/exceptions.json', 'https://raw.githubusercontent.com/FriendCode/mimer/master/mimer/mimetypes.json']
 
 # Credits
@@ -316,7 +318,7 @@ wget: usage "wget URL [optional output filename]"
 			print 'wget: error',e
 	
 	def do_git(self,line):
-		'''Very basic Git commands: init, stage, commit, clone, diff
+		'''Very basic Git commands: init, stage, commit, clone, modified
 		'''
 		from gittle import Gittle
 		
@@ -337,7 +339,7 @@ wget: usage "wget URL [optional output filename]"
 			if len(args) == 3:
 				try:
 					repo = Gittle('.')
-					repo.commit(name=args[1],email=args[2],message=args[0])
+					print repo.commit(name=args[1],email=args[2],message=args[0])
 				except:
 					print 'Error: {0}'.format(sys.exc_value)
 			else:
@@ -349,9 +351,24 @@ wget: usage "wget URL [optional output filename]"
 			else:
 				print 'git clone <url> [path]'
 				
-		def git_diff(args):
+		def git_push(args):
+			from gittle import GittleAuth
+			if len(args) == 1 or len(args) == 3: 
+				if len(args) > 1:
+					user = args[1]
+					pw = args[2]
+					auth = GittleAuth(username=user,password=pw)
+					repo = Gittle('.', origin_uri=args[0], auth=auth)
+					repo.push()
+				else:
+					repo.push()
+			else:
+				print 'git push <remote repo> [username password]'
+				
+		def git_modified(args):
 			repo = Gittle('.')
-			print repo.diff_working()
+			for mod_file in repo.modified_files:
+				print mod_file
 			
 		def git_log(args):
 			if len(args) == 0:
@@ -361,26 +378,42 @@ wget: usage "wget URL [optional output filename]"
 				print 'git log'
 				
 		def git_help(args):
-			print 'help'
+			print 'help:'
+			for key, value in command_help.items():
+				print value
 			
 		commands = {
 		            'init': git_init
 		            ,'stage': git_stage
 		            ,'commit': git_commit
 		            ,'clone': git_clone
-		            ,'diff': git_diff
+		            ,'modified': git_modified
 		            ,'log': git_log
+		            ,'push': git_push
 		            ,'help': git_help
 		            }
+		
+		command_help = {
+		        		'init': 'git init <directory>'
+		            ,'stage': 'git stage <file1> .. [file2] ..'
+		            ,'commit': 'git commit <message> <name> <email>'
+		            ,'clone': 'git clone <url> [path]'
+		            ,'modified': 'git modified'
+		            ,'log': 'git log'
+		            ,'push': 'git push <remote repo> [username password]'
+		            ,'help': 'git help'
+		        }
 		            
+		#git_init.__repr__ = "git init abc"
+		
 		args = self.bash(line)
 		
-		#try:
+		try:
 			#Call the command and pass args
-		cmd = commands.get(args[0],'help')
-		cmd(args[1:])
-		#except:
-		#	print 'Error: {0}'.format(sys.exc_value)						
+			cmd = commands.get(args[0] if len(args) > 0 else 'help','help')
+			cmd(args[1:])
+		except:
+			print 'Error: {0}'.format(sys.exc_value)						
 
 			
 	def do_untgz(self, file):
@@ -935,12 +968,15 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 		except:
 			print 'Error importing {0}, continuing without.'.format(modulename)
 			for f in shellfuncs:
-				exec('Shell.{0}=None'.format(f), globals(), locals())
+				#Delete commands that we can't get dependencies for1
+				exec('del Shell.{0}'.format(f), globals(), locals())
 				
 
 def _extract_dulwich(shell, path):
 	shell.do_untgz('dulwich.tar.gz')
+	#shell.do_mv('dulwich/dulwich-0.9.7/dulwich .')
 	shell.do_cd('dulwich/dulwich-0.9.7')
+	#shell.do_cd('dulwich/AaronO-dulwich-eebb032')
 	shell.do_mv('dulwich ../../..')
 	shell.do_cd('../..')
 	
@@ -968,7 +1004,8 @@ def _extract_mimer():
 	
 def _extract_funky(shell, path):
 	shell.do_untgz('funky.tar.gz')
-	shell.do_mv('funky/funky-0.0.2/funky ..')
+	shell.do_mv('funky/FriendCode-funky-e89cb2c/funky ..')
+	#shell.do_mv('funky/funky-0.0.2/funky ..')
 	#shell.do_mv('funky ../../..')
 	#shell.do_cd('../..')
 
@@ -977,7 +1014,7 @@ def _shellista_setup():
 	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])	
 	_extract_mimer()
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
-	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, [])
+	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
 		
 
 #def __shellista_setup():
