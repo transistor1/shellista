@@ -2,13 +2,6 @@ import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip
 import string
 import urllib2
 
-
-PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
-DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
-GITTLE_URL='https://pypi.python.org/packages/source/g/gittle/gittle-0.3.0.tar.gz'
-FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
-MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
-
 # Credits
 #
 # The python code here was written by pudquick@github
@@ -41,6 +34,26 @@ MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea
 # It's an implementation of mine of the bash parser in pure python
 # This has advantages over shlex, glob, and shlex->glob in that it expects
 # the strings to represent files from the start.
+
+#Modified by svrusso1@gmail.com:
+# - Integrate minimal pipista functionality
+#   - pdown - PyPi download
+#   - psrc - PyPi search
+# - Minimal Git functionality
+#  - git init - Initialize git repo
+#  - git add - Stage one or more files
+#  - git commit - Commit staged files
+#  - git clone - clone a public repo (no auth)
+#  - git push - push commits via web
+#  - git modified - see which files are currently modified
+#  - git log - doesn't currently work
+
+
+PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
+DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
+GITTLE_URL='https://pypi.python.org/packages/source/g/gittle/gittle-0.3.0.tar.gz'
+FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
+MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
 
 class BetterParser:
 	def __init__(self):
