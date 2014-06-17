@@ -400,7 +400,7 @@ class Shell(cmd.Cmd):
 		,'clone': 'git clone <url> [path]'
 		,'modified': 'git modified'
 		,'log': 'git log'
-		,'push': 'git push <remote repo> [username password]'
+		,'push': 'git push http(s)://<remote repo> [username password]'
 		,'help': 'git help'
 		}
 
