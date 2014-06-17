@@ -1001,10 +1001,10 @@ def _shellista_setup():
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
 	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
-	if dulwich:
-		from dulwich.client import default_user_agent_string
 
 _shellista_setup()
+if dulwich:
+	from dulwich.client import default_user_agent_string
 
 import contextlib
 @contextlib.contextmanager
