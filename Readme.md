@@ -1,3 +1,7 @@
+##Shellista
+
+# An iOS Shell Written for Pythonista
+
 On 24 Nov 2012, user "pudquick" [released the initial version of Shellista][1] on the Pythonista forums, to help Pythonista users get around the fact that there is no shell available on iOS devices.  Since the original post, many in the Pythonista community have contributed to improve the functionality of Shellista.  From pudquick's initial post:
 
 Commands and features:
