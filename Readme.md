@@ -27,4 +27,25 @@ Examples of advanced usage: ls *.py */*.py (lists all .py files in current direc
 
 For the interested programmer: This script uses a pure python re-implementation of some of the more basic globbing of "bash" which I wrote up myself. It's a little different than shlex, glob, or shlex+glob in that matching happens in a single parsing run through. It depends on glob for wildcard handling, but only after my code has already handled all character escapes and word parsing. An example where shlex/glob fails: In the current working directory are three files: 'test apple', 'peach', 'test a*' (with an asterisk as part of the name) The command to parse is the string: rm 'test a*' peach shlex interprets it as ['rm', 'test a*', 'peach'], which glob then interprets the file portion as a match of three files: ['test apple', 'test a*', 'peach']. shlex unfortunately clobbers quotes that in a bash environment specify that the special character should be treated as a literal. This would result in deletion of all 3 files. With my parser, the single quotes around 'test a*' are interpreted bash-style to mean escaping of the special character '*' - disabling it as a wildcard match and turning it into a literal match, resulting in the deletion of only two files: 'test a*' and 'peach'.
 
+---
+
+New Additions:
+
+ - Integrate minimal pipista functionality
+  - pdown - PyPi download
+  - psrch - PyPi search
+ - Minimal Git functionality
+  - git init - Initialize git repo
+  - git add - Stage one or more files
+  - git commit - Commit staged files
+  - git clone - clone a public repo (no auth)
+  - git push - push commits via web
+  - git modified - see which files are currently modified
+  - git log - doesn't currently work
+ - untgz - a convenience wrapper to untar and ungzip at the same time
+ - Ripped @mark_tully's wget - thanks Mark!
+ - Simple Python sub-shell by typing 'shell', 'python', or '!'
+  - Running a file directly doesn't work (e.g. 'python somefile.py'), though I tried
+  - Single-line commands only
+
 [1]: http://omz-forums.appspot.com/pythonista/post/5302343285342208
