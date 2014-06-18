@@ -14,8 +14,6 @@ Commands and features:
 * unzip - unzip zip archives
 * untar - untar tar archives
 * ungzip / gunzip - ungzip gzipped files
-
-
 * Supports wildcard matches (matching any number of characters)
 * Supports ? / question mark matches (matching exactly one of any character)
 * Supports [ranges] (like [a-z], [0-9], [a-f0-9], etc.)
