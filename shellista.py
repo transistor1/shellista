@@ -1,4 +1,4 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback
 
 # Credits
 #
@@ -390,7 +390,8 @@ class Shell(cmd.Cmd):
 		def git_log(args):
 			if len(args) == 0:
 				repo = Gittle('.')
-				print repo.log()
+				#print repo.log()
+				print repo.commit_info()
 			else:
 				print command_help['log']
 
@@ -430,7 +431,10 @@ class Shell(cmd.Cmd):
 			cmd = commands.get(args[0] if len(args) > 0 else 'help','help')
 			cmd(args[1:])
 		except:
-			print 'Error: {0}'.format(sys.exc_value)
+			import traceback
+			traceback.print_exception(sys.exc_type, sys.exc_value, sys.exc_traceback)
+			#traceback.print_tb(sys.exc_traceback)
+			#print 'Error: {0}'.format(sys.exc_value)
 
 
 	def do_untgz(self, file):
@@ -967,7 +971,14 @@ class Shell(cmd.Cmd):
 		self.did_quit = True
 	def postcmd(self,stop,line):
 		return self.did_quit
-
+	def emptyline(self):
+		pass
+	def onecmd(self, line):
+		try:
+			cmd.Cmd.onecmd(self, line)
+		except:
+			print "Unhandled Exception:"
+			traceback.print_exc()
 
 def _global_import(modulename):
 	module = __import__(modulename,globals(),locals())
