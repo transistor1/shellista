@@ -1,4 +1,4 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, json
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, json,ui
 
 # Credits
 #
@@ -992,6 +992,53 @@ class Shell(cmd.Cmd):
 		except:
 			print "Unhandled Exception:"
 			traceback.print_exc()
+	def precmd(self,line):
+		#check if last char is tab, in which case, autocompl
+		#If last char is two tabs, nuke last argument
+		while line.endswith('    '):
+			if line.endswith('        '):
+				newline=' '.join([s.replace(' ',"' '") for s in self._bash.parse(line)[:-1]])
+			else:
+				newline=_tabcompl(line,self._bash)
+			line=newline+raw_input('+++' + newline)
+		print '>' + line
+		return line
+
+def _tabcompl(line,bash):
+		"""complete partial line"""
+		args=bash.parse(line)
+		filef=args[-1]
+
+		full_file = os.path.relpath(filef)
+		file_name = os.path.basename(filef)
+		dir_name  = os.path.relpath(os.path.normpath(os.path.dirname(filef)))
+		files = os.listdir(dir_name)
+		matchingfiles = [f for f in files if f.startswith(file_name)]
+
+		table=ui.TableView()
+		listsource=ui.ListDataSource(matchingfiles)
+		listsource.font=('<system>',10)
+		listsource.action=_tapaction
+		table.data_source=listsource
+		table.delegate=listsource
+		table.width=300
+		table.height=300
+		table.row_height=15
+		table.present('popover')
+		if len(matchingfiles) > 1:
+			table.wait_modal()
+		else:
+			table.close()
+		#now, replace last arg with the match.  
+		if len(matchingfiles) > 0:
+			args[-1]=os.path.join(dir_name,matchingfiles[table.selected_row[1]])
+		else:
+			args[-1]=''  #no match... just kill arg
+		newline=' '.join([s.replace(' ',"' '") for s in args])
+		return newline
+def _tapaction(sender):
+	sender.tableview.close()
+
 
 def _global_import(modulename):
 	module = __import__(modulename,globals(),locals())
