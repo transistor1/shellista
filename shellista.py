@@ -1051,6 +1051,11 @@ def _shellista_setup():
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
 	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
+	
+	#try:
+	#	import dulwich.config
+	#except ImportError:
+	#	print "Can't import dulwich.config: Git commands may not work"
 
 _shellista_setup()
 if dulwich:
@@ -1113,6 +1118,9 @@ def main():
 	#from dulwich.client import HttpGitClient
 	#HttpGitClient._perform = _perform
 	from gittle import Gittle
+	import dulwich.config
+	import dulwich.walk
+	
 	Gittle.push_to = push_to
 	shell = Shell()
 	shell.prompt = '> '
