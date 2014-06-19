@@ -395,6 +395,13 @@ class Shell(cmd.Cmd):
 			else:
 				print command_help['log']
 
+		def git_checkout(args):
+			if len(args) == 1:
+				repo = Gittle('.')
+				repo.checkout('refs/heads/{0}'.format(args[0]))
+			else:
+				print command_help['checkout']
+
 		def git_help(args):
 			print 'help:'
 			for key, value in command_help.items():
@@ -408,6 +415,7 @@ class Shell(cmd.Cmd):
 		,'modified': git_modified
 		,'log': git_log
 		,'push': git_push
+		,'checkout': git_checkout
 		,'help': git_help
 		}
 
@@ -419,6 +427,7 @@ class Shell(cmd.Cmd):
 		,'modified': 'git modified'
 		,'log': 'git log'
 		,'push': 'git push http(s)://<remote repo> [username password]'
+		,'checkout': 'git checkout <branch>'
 		,'help': 'git help'
 		}
 
