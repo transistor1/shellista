@@ -1,4 +1,4 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, json
 
 # Credits
 #
@@ -391,7 +391,11 @@ class Shell(cmd.Cmd):
 			if len(args) == 0:
 				repo = Gittle('.')
 				#print repo.log()
-				print repo.commit_info()
+				for commit in repo.commit_info():
+					print "\n\nCommit {0}\nAuthor: {1}\nDate: {2}\n{3}".format(commit['sha']
+																			, commit['committer']['raw']
+																			, time.strftime("%b %e, %Y %H:%M:%S %z", time.gmtime(commit['time']))
+																			, commit['message'])
 			else:
 				print command_help['log']
 
