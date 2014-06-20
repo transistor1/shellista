@@ -1,4 +1,8 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, json,ui
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, ui
+
+#Option to install required modules as a subdirectory of the shellista.py module
+#or install in the user site-packages folder.
+LOCAL_SITE_PACKAGES=True
 
 # Credits
 #
@@ -58,6 +62,13 @@ DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar
 GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
 MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
+
+if LOCAL_SITE_PACKAGES:
+	module_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'local-packages')
+else:
+	import site
+	module_dir = site.USER_SITE
+ 
 
 class BetterParser:
 	def __init__(self):
@@ -1057,7 +1068,7 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 		s.do_mkdir('.shellista_tmp')
 		s.do_cd('.shellista_tmp')
 		s.do_wget("{0} {1}".format(url, filename))
-		after_extracted(s, os.getcwd())
+		after_extracted(s, os.getcwd(), modulename)
 		s.do_cd('..')
 		s.do_rm('.shellista_tmp')
 		try:
@@ -1068,44 +1079,31 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 				#Delete commands that we can't get dependencies for1
 				exec('del Shell.{0}'.format(f), globals(), locals())
 
+def _extract_generic(shell, path, modulename):
+	shell.do_untgz('{0}.tar.gz'.format(modulename))
+	shell.do_mv('{0}/*/{0} {1}/'.format(modulename, module_dir))
 
-def _extract_dulwich(shell, path):
-	shell.do_untgz('dulwich.tar.gz')
-	shell.do_cd('dulwich/*')
-	shell.do_mv('dulwich ../../..')
-	shell.do_cd('../..')
-
-def _extract_pipista(shell, path):
-	shell.do_mv('pipista.py ..')
-
-def _extract_gittle(shell, path):
-	shell.do_untgz('gittle.tar.gz')
-	shell.do_cd('gittle/gittle*')
-	shell.do_mv('gittle ../../..')
-	shell.do_cd('../..')
-
-def _extract_mimer(shell, path):
-	shell.do_untgz('mimer.tar.gz')
-	shell.do_mv('mimer/*/mimer ..')
-
-def _extract_funky(shell, path):
-	shell.do_untgz('funky.tar.gz')
-	shell.do_mv('funky/*/funky ..')
+def _extract_pipista(shell, path, modulename):
+	shell.do_mv('pipista.py {0}'.format(module_dir))
 
 def _shellista_setup():
-	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
-	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])
-	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
-	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
-	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
+	#make sure site-packages is in the path.  If shellista is
+	#in a subfolder of ~, it will create a site-packages subfolder
+	#so shellista can be installed anywhere.
+	if not os.path.exists(module_dir):
+		os.mkdir(module_dir)
+		
+	if not module_dir in sys.path:
+		sys.path.insert(0, module_dir + '/')
 	
-	#try:
-	#	import dulwich.config
-	#except ImportError:
-	#	print "Can't import dulwich.config: Git commands may not work"
-
+	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
+	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_generic, [])
+	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_generic, [])
+	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_generic, [])
+	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_generic, ['do_git'])
+	
 _shellista_setup()
-if dulwich:
+if globals().get('dulwich'):
 	from dulwich.client import default_user_agent_string
 
 import contextlib
@@ -1162,16 +1160,14 @@ def auth_urllib2_opener(config, top_level_url, username, password):
 	return opener
 
 def main():
-	#from dulwich.client import HttpGitClient
-	#HttpGitClient._perform = _perform
 	from gittle import Gittle
-	import dulwich.config
-	import dulwich.walk
 	
 	Gittle.push_to = push_to
+	
 	shell = Shell()
 	shell.prompt = '> '
 	shell.cmdloop()
 
 if __name__ == '__main__':
 	main()
+
