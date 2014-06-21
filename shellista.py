@@ -1,4 +1,8 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, json,ui
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, ui
+
+#Option to install required modules as a subdirectory of the shellista.py module
+#or install in the user site-packages folder.
+LOCAL_SITE_PACKAGES=True
 
 # Credits
 #
@@ -58,6 +62,13 @@ DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar
 GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
 MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
+
+if LOCAL_SITE_PACKAGES:
+	module_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'local-packages')
+else:
+	import site
+	module_dir = site.USER_SITE
+ 
 
 class BetterParser:
 	def __init__(self):
@@ -336,14 +347,37 @@ class Shell(cmd.Cmd):
 			print 'wget: error',e
 
 	def do_git(self,line):
-		"""Very basic Git commands: init, stage, commit, clone, modified"""
+		"""Very basic Git commands: init, stage, commit, clone, modified, branch"""
 		from gittle import Gittle
+		
+		#TODO: These git functions all follow the same pattern.
+		#Refactor these so they only contain their unique logic
 
 		def git_init(args):
 			if len(args) == 1:
 				Gittle.init(args[0])
 			else:
 				print command_help['init']
+				
+		def git_staged(args):
+			if len(args) == 0:
+				repo = Gittle('.')
+				repo.diff_working()
+				#repo.diff(diff_type='changes')
+				#print repo.modified_files.intersection(repo.added_files) #repo.tracked_files.intersection(repo.added_files)
+				#print repo.added_files
+			else:
+				print command_help['git_staged']
+				
+		def git_remote(args):
+			'''List remote repos'''
+			if len(args) == 0:
+				repo = Gittle('.')
+				print repo.origin_uri
+				for key, value in repo.remotes.items():
+					print key, value
+			else:
+				print command_help['remote']
 
 		def git_add(args):
 			if len(args) > 0:
@@ -351,6 +385,15 @@ class Shell(cmd.Cmd):
 				repo.stage(args)
 			else:
 				print command_help['add']
+
+		def git_branch(args):
+			if len(args) == 0:
+				repo = Gittle('.')
+				active = repo.active_branch
+				for key, value in repo.branches.items():
+					print ('* ' if key == active else '') + key, value
+			else:
+				print command_help['branch']
 
 		def git_commit(args):
 			if len(args) == 3:
@@ -375,7 +418,8 @@ class Shell(cmd.Cmd):
 					user = args[1]
 					pw = args[2]
 					repo = Gittle('.')
-					print repo.push_to(args[0],username=user,password=pw)
+					
+					print repo.push_to(args[0],branchname=repo.active_branch,username=user,password=pw)
 				else:
 					repo = Gittle('.', origin_uri=args[0])
 					repo.push()
@@ -388,10 +432,10 @@ class Shell(cmd.Cmd):
 				print mod_file
 
 		def git_log(args):
-			if len(args) == 0:
+			if len(args) <= 1:
 				repo = Gittle('.')
 				#print repo.log()
-				for commit in repo.commit_info():
+				for commit in repo.commit_info(end=int(args[0]) if len(args)==1 else None):
 					print "\n\nCommit {0}\nAuthor: {1}\nDate: {2}\n{3}".format(commit['sha']
 																			, commit['committer']['raw']
 																			, time.strftime("%b %e, %Y %H:%M:%S %z", time.gmtime(commit['time']))
@@ -399,10 +443,12 @@ class Shell(cmd.Cmd):
 			else:
 				print command_help['log']
 
+#    def switch_branch(self, branch_name, tracking=None, create=None):
 		def git_checkout(args):
 			if len(args) == 1:
 				repo = Gittle('.')
-				repo.checkout('refs/heads/{0}'.format(args[0]))
+				#repo.checkout('refs/heads/{0}'.format(args[0]))
+				repo.switch_branch('{0}'.format(args[0]))
 			else:
 				print command_help['checkout']
 
@@ -411,6 +457,7 @@ class Shell(cmd.Cmd):
 			for key, value in command_help.items():
 				print value
 
+		#TODO: Alphabetize
 		commands = {
 		'init': git_init
 		,'add': git_add
@@ -419,19 +466,24 @@ class Shell(cmd.Cmd):
 		,'modified': git_modified
 		,'log': git_log
 		,'push': git_push
+		,'branch': git_branch
 		,'checkout': git_checkout
+		,'remote': git_remote
+		#,'staged': git_staged
 		,'help': git_help
 		}
 
 		command_help = {
-		'init': 'git init <directory>'
-		,'add': 'git add <file1> .. [file2] ..'
-		,'commit': 'git commit <message> <name> <email>'
-		,'clone': 'git clone <url> [path]'
-		,'modified': 'git modified'
-		,'log': 'git log'
-		,'push': 'git push http(s)://<remote repo> [username password]'
-		,'checkout': 'git checkout <branch>'
+		'init':  'git init <directory> - initialize a new Git repository'
+		,'add': 'git add <file1> .. [file2] .. - stage one or more files'
+		,'commit': 'git commit <message> <name> <email> - commit staged files'
+		,'clone': 'git clone <url> [path] - clone a remote repository'
+		,'modified': 'git modified - show what files have been modified'
+		,'log': 'git log [number of changes to show] - show a full log of changes'
+		,'push': 'git push http(s)://<remote repo> [username password] - push changes back to remote'
+		,'checkout': 'git checkout <branch> - check out a particular branch in the Git tree'
+		,'branch': 'git branch - show branches'
+		#,'staged': 'git staged - show staged files (files that are marked for commit)'
 		,'help': 'git help'
 		}
 
@@ -1057,7 +1109,7 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 		s.do_mkdir('.shellista_tmp')
 		s.do_cd('.shellista_tmp')
 		s.do_wget("{0} {1}".format(url, filename))
-		after_extracted(s, os.getcwd())
+		after_extracted(s, os.getcwd(), modulename)
 		s.do_cd('..')
 		s.do_rm('.shellista_tmp')
 		try:
@@ -1068,44 +1120,31 @@ def _import_optional(modulename, url, filename, after_extracted, shellfuncs):
 				#Delete commands that we can't get dependencies for1
 				exec('del Shell.{0}'.format(f), globals(), locals())
 
+def _extract_generic(shell, path, modulename):
+	shell.do_untgz('{0}.tar.gz'.format(modulename))
+	shell.do_mv('{0}/*/{0} {1}/'.format(modulename, module_dir))
 
-def _extract_dulwich(shell, path):
-	shell.do_untgz('dulwich.tar.gz')
-	shell.do_cd('dulwich/*')
-	shell.do_mv('dulwich ../../..')
-	shell.do_cd('../..')
-
-def _extract_pipista(shell, path):
-	shell.do_mv('pipista.py ..')
-
-def _extract_gittle(shell, path):
-	shell.do_untgz('gittle.tar.gz')
-	shell.do_cd('gittle/gittle*')
-	shell.do_mv('gittle ../../..')
-	shell.do_cd('../..')
-
-def _extract_mimer(shell, path):
-	shell.do_untgz('mimer.tar.gz')
-	shell.do_mv('mimer/*/mimer ..')
-
-def _extract_funky(shell, path):
-	shell.do_untgz('funky.tar.gz')
-	shell.do_mv('funky/*/funky ..')
+def _extract_pipista(shell, path, modulename):
+	shell.do_mv('pipista.py {0}'.format(module_dir))
 
 def _shellista_setup():
-	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
-	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_dulwich, [])
-	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_funky, [])
-	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_mimer, [])
-	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_gittle, ['do_git'])
+	#make sure site-packages is in the path.  If shellista is
+	#in a subfolder of ~, it will create a site-packages subfolder
+	#so shellista can be installed anywhere.
+	if not os.path.exists(module_dir):
+		os.mkdir(module_dir)
+		
+	if not module_dir in sys.path:
+		sys.path.insert(0, module_dir + '/')
 	
-	#try:
-	#	import dulwich.config
-	#except ImportError:
-	#	print "Can't import dulwich.config: Git commands may not work"
-
+	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
+	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_generic, [])
+	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_generic, [])
+	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_generic, [])
+	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_generic, ['do_git'])
+	
 _shellista_setup()
-if dulwich:
+if globals().get('dulwich'):
 	from dulwich.client import default_user_agent_string
 
 import contextlib
@@ -1162,16 +1201,14 @@ def auth_urllib2_opener(config, top_level_url, username, password):
 	return opener
 
 def main():
-	#from dulwich.client import HttpGitClient
-	#HttpGitClient._perform = _perform
 	from gittle import Gittle
-	import dulwich.config
-	import dulwich.walk
 	
 	Gittle.push_to = push_to
+	
 	shell = Shell()
 	shell.prompt = '> '
 	shell.cmdloop()
 
 if __name__ == '__main__':
 	main()
+
