@@ -68,7 +68,6 @@ if LOCAL_SITE_PACKAGES:
 else:
 	import site
 	module_dir = site.USER_SITE
- 
 
 class BetterParser:
 	def __init__(self):
@@ -419,7 +418,7 @@ class Shell(cmd.Cmd):
 					pw = args[2]
 					repo = Gittle('.')
 					
-					print repo.push_to(args[0],branchname=repo.active_branch,username=user,password=pw)
+					print repo.push_to(args[0],branch_name=repo.active_branch,username=user,password=pw)
 				else:
 					repo = Gittle('.', origin_uri=args[0])
 					repo.push()
@@ -1131,11 +1130,13 @@ def _shellista_setup():
 	#make sure site-packages is in the path.  If shellista is
 	#in a subfolder of ~, it will create a site-packages subfolder
 	#so shellista can be installed anywhere.
+
 	if not os.path.exists(module_dir):
 		os.mkdir(module_dir)
-		
+	
 	if not module_dir in sys.path:
 		sys.path.insert(0, module_dir + '/')
+
 	
 	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
 	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_generic, [])
