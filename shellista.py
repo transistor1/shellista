@@ -362,8 +362,10 @@ class Shell(cmd.Cmd):
 		def git_staged(args):
 			if len(args) == 0:
 				repo = Gittle('.')
-				#print repo.staged_files
-				print repo.added_files
+				repo.diff_working()
+				#repo.diff(diff_type='changes')
+				#print repo.modified_files.intersection(repo.added_files) #repo.tracked_files.intersection(repo.added_files)
+				#print repo.added_files
 			else:
 				print command_help['git_staged']
 				
@@ -466,7 +468,7 @@ class Shell(cmd.Cmd):
 		,'branch': git_branch
 		,'checkout': git_checkout
 		,'remote': git_remote
-		,'staged': git_staged
+		#,'staged': git_staged
 		,'help': git_help
 		}
 
@@ -477,10 +479,10 @@ class Shell(cmd.Cmd):
 		,'clone': 'git clone <url> [path] - clone a remote repository'
 		,'modified': 'git modified - show what files have been modified'
 		,'log': 'git log [number of changes to show] - show a full log of changes'
-		,'push': 'git push http(s)://<remote repo> [username password]'
-		,'checkout': 'git checkout <branch>'
+		,'push': 'git push http(s)://<remote repo> [username password] - push changes back to remote'
+		,'checkout': 'git checkout <branch> - check out a particular branch in the Git tree'
 		,'branch': 'git branch - show branches'
-		,'staged': 'git staged - show staged files'
+		#,'staged': 'git staged - show staged files (files that are marked for commit)'
 		,'help': 'git help'
 		}
 
