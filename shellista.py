@@ -1,4 +1,9 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, ui
+import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time
+
+try:
+	import ui
+except ImportError:
+	print "Warning - continuing with UI module (possibly not running on iPad)"
 
 #Option to install required modules as a subdirectory of the shellista.py module
 #or install in the user site-packages folder.
