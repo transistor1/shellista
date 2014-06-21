@@ -347,14 +347,35 @@ class Shell(cmd.Cmd):
 			print 'wget: error',e
 
 	def do_git(self,line):
-		"""Very basic Git commands: init, stage, commit, clone, modified"""
+		"""Very basic Git commands: init, stage, commit, clone, modified, branch"""
 		from gittle import Gittle
+		
+		#TODO: These git functions all follow the same pattern.
+		#Refactor these so they only contain their unique logic
 
 		def git_init(args):
 			if len(args) == 1:
 				Gittle.init(args[0])
 			else:
 				print command_help['init']
+				
+		def git_staged(args):
+			if len(args) == 0:
+				repo = Gittle('.')
+				#print repo.staged_files
+				print repo.added_files
+			else:
+				print command_help['git_staged']
+				
+		def git_remote(args):
+			'''List remote repos'''
+			if len(args) == 0:
+				repo = Gittle('.')
+				print repo.origin_uri
+				for key, value in repo.remotes.items():
+					print key, value
+			else:
+				print command_help['remote']
 
 		def git_add(args):
 			if len(args) > 0:
@@ -362,6 +383,15 @@ class Shell(cmd.Cmd):
 				repo.stage(args)
 			else:
 				print command_help['add']
+
+		def git_branch(args):
+			if len(args) == 0:
+				repo = Gittle('.')
+				active = repo.active_branch
+				for key, value in repo.branches.items():
+					print ('* ' if key == active else '') + key, value
+			else:
+				print command_help['branch']
 
 		def git_commit(args):
 			if len(args) == 3:
@@ -399,10 +429,10 @@ class Shell(cmd.Cmd):
 				print mod_file
 
 		def git_log(args):
-			if len(args) == 0:
+			if len(args) <= 1:
 				repo = Gittle('.')
 				#print repo.log()
-				for commit in repo.commit_info():
+				for commit in repo.commit_info(end=int(args[0]) if len(args)==1 else None):
 					print "\n\nCommit {0}\nAuthor: {1}\nDate: {2}\n{3}".format(commit['sha']
 																			, commit['committer']['raw']
 																			, time.strftime("%b %e, %Y %H:%M:%S %z", time.gmtime(commit['time']))
@@ -410,10 +440,12 @@ class Shell(cmd.Cmd):
 			else:
 				print command_help['log']
 
+#    def switch_branch(self, branch_name, tracking=None, create=None):
 		def git_checkout(args):
 			if len(args) == 1:
 				repo = Gittle('.')
-				repo.checkout('refs/heads/{0}'.format(args[0]))
+				#repo.checkout('refs/heads/{0}'.format(args[0]))
+				repo.switch_branch('{0}'.format(args[0]))
 			else:
 				print command_help['checkout']
 
@@ -422,6 +454,7 @@ class Shell(cmd.Cmd):
 			for key, value in command_help.items():
 				print value
 
+		#TODO: Alphabetize
 		commands = {
 		'init': git_init
 		,'add': git_add
@@ -430,19 +463,24 @@ class Shell(cmd.Cmd):
 		,'modified': git_modified
 		,'log': git_log
 		,'push': git_push
+		,'branch': git_branch
 		,'checkout': git_checkout
+		,'remote': git_remote
+		,'staged': git_staged
 		,'help': git_help
 		}
 
 		command_help = {
-		'init': 'git init <directory>'
-		,'add': 'git add <file1> .. [file2] ..'
-		,'commit': 'git commit <message> <name> <email>'
-		,'clone': 'git clone <url> [path]'
-		,'modified': 'git modified'
-		,'log': 'git log'
+		'init':  'git init <directory> - initialize a new Git repository'
+		,'add': 'git add <file1> .. [file2] .. - stage one or more files'
+		,'commit': 'git commit <message> <name> <email> - commit staged files'
+		,'clone': 'git clone <url> [path] - clone a remote repository'
+		,'modified': 'git modified - show what files have been modified'
+		,'log': 'git log [number of changes to show] - show a full log of changes'
 		,'push': 'git push http(s)://<remote repo> [username password]'
 		,'checkout': 'git checkout <branch>'
+		,'branch': 'git branch - show branches'
+		,'staged': 'git staged - show staged files'
 		,'help': 'git help'
 		}
 
