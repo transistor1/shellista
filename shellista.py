@@ -3,7 +3,7 @@ import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, 
 try:
 	import ui
 except ImportError:
-	print "Warning - continuing with UI module (possibly not running on iPad)"
+	print "Continuing without UI module (possibly not running on iPad)"
 
 #Option to install required modules as a subdirectory of the shellista.py module
 #or install in the user site-packages folder.
@@ -437,7 +437,10 @@ class Shell(cmd.Cmd):
 
 		def git_log(args):
 			if len(args) <= 1:
-				porcelain.log(max_entries=args[0] if len(args[0]==1) else None)
+				try:
+					porcelain.log(max_entries=int(args[0]) if len(args)==1 else None)
+				except ValueError:
+					print command_help['log']
 			else:
 				print command_help['log']
 
