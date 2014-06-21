@@ -418,7 +418,8 @@ class Shell(cmd.Cmd):
 					user = args[1]
 					pw = args[2]
 					repo = Gittle('.')
-					print repo.push_to(args[0],username=user,password=pw)
+					
+					print repo.push_to(args[0],branchname=repo.active_branch,username=user,password=pw)
 				else:
 					repo = Gittle('.', origin_uri=args[0])
 					repo.push()
