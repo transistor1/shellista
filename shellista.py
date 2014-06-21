@@ -377,7 +377,6 @@ class Shell(cmd.Cmd):
 			'''List remote repos'''
 			if len(args) == 0:
 				repo = Gittle('.')
-				print repo.origin_uri
 				for key, value in repo.remotes.items():
 					print key, value
 			else:
@@ -411,12 +410,16 @@ class Shell(cmd.Cmd):
 
 		def git_clone(args):
 			if len(args) > 0:
-				Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
+				url = args[0]
+				repo = Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
+				#Set the origin
+				config = repo.repo.get_config()
+				config.set(('remote','origin'),'url',url)
+				config.write_to_path()
 			else:
 				print command_help['clone']
 
 		def git_push(args):
-			from gittle import GittleAuth
 			if len(args) == 1 or len(args) == 3:
 				if len(args) > 1:
 					user = args[1]
