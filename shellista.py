@@ -432,13 +432,7 @@ class Shell(cmd.Cmd):
 
 		def git_log(args):
 			if len(args) <= 1:
-				repo = Gittle('.')
-				#print repo.log()
-				for commit in repo.commit_info(end=int(args[0]) if len(args)==1 else None):
-					print "\n\nCommit {0}\nAuthor: {1}\nDate: {2}\n{3}".format(commit['sha']
-																			, commit['committer']['raw']
-																			, time.strftime("%b %e, %Y %H:%M:%S %z", time.gmtime(commit['time']))
-																			, commit['message'])
+				porcelain.log(max_entries=args[0] if len(args[0]==1) else None)
 			else:
 				print command_help['log']
 
@@ -1147,6 +1141,7 @@ def _shellista_setup():
 _shellista_setup()
 if globals().get('dulwich'):
 	from dulwich.client import default_user_agent_string
+	from dulwich import porcelain
 
 import contextlib
 @contextlib.contextmanager
