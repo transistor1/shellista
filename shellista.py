@@ -419,7 +419,13 @@ class Shell(cmd.Cmd):
 		def git_clone(args):
 			if len(args) > 0:
 				url = args[0]
+
+				#def clone(source, target=None, bare=False, checkout=None, config=None, opener=None, outstream=sys.stdout):
 				repo = Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
+
+				#porcelain.clone(url, target='.')
+				#repo = Gittle('.')
+
 				#Set the origin
 				config = repo.repo.get_config()
 				config.set(('remote','origin'),'url',url)
@@ -452,17 +458,12 @@ class Shell(cmd.Cmd):
 			if user:
 				if not pw:
 					pw = getpass.getpass('Enter password for {0}: '.format(user))
-				#def push(repo, remote_location, refs_path, config=None,opener=None,
-				#         outstream=sys.stdout, errstream=sys.stderr):
+
 				opener = auth_urllib2_opener(None, result.url, user, pw)
 
 				print porcelain.push(repo.repo, result.url, branch_name, opener=opener)
-				#porcelain.push(repo.repo, result.url, 'refs/remotes/origin' + branch_name, opener=opener)
-				#repo.push_to(result.url,branch_name=branch_name,username=user,password=pw)
-
 			else:
 				print porcelain.push(repo.repo, result.url, branch_name)
-				#repo.push_to(result.url,branch_name=branch_name)
 
 		def git_modified(args):
 			repo = Gittle('.')
