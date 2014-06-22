@@ -532,10 +532,10 @@ class Shell(cmd.Cmd):
 			cmd = commands.get(args[0] if len(args) > 0 else 'help','help')
 			cmd(args[1:])
 		except:
-			import traceback
-			traceback.print_exception(sys.exc_type, sys.exc_value, sys.exc_traceback)
-			traceback.print_tb(sys.exc_traceback)
-			#print 'Error: {0}'.format(sys.exc_value)
+			#import traceback
+			#traceback.print_exception(sys.exc_type, sys.exc_value, sys.exc_traceback)
+			#traceback.print_tb(sys.exc_traceback)
+			print 'Error: {0}'.format(sys.exc_value)
 
 
 	def do_untgz(self, file):
