@@ -1,4 +1,9 @@
-import os, cmd, sys, re, glob, os.path, shutil, zipfile, tarfile, gzip, string, urllib2, traceback, time, ui
+import os, cmd, sys, glob, os.path, shutil, zipfile, tarfile, gzip, urllib2, traceback, getpass
+
+try:
+	import ui
+except ImportError:
+	print "Continuing without UI module (possibly not running on iPad)"
 
 #Option to install required modules as a subdirectory of the shellista.py module
 #or install in the user site-packages folder.
@@ -58,7 +63,7 @@ LOCAL_SITE_PACKAGES=True
 
 
 PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
-DULWICH_URL='https://pypi.python.org/packages/source/d/dulwich/dulwich-0.9.7.tar.gz'
+DULWICH_URL='https://github.com/transistor1/dulwich/archive/master.tar.gz'
 GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
 MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
@@ -352,27 +357,34 @@ class Shell(cmd.Cmd):
 		#TODO: These git functions all follow the same pattern.
 		#Refactor these so they only contain their unique logic
 
+		#TODO: If there is no ~/.gitconfig file, set up the username and password
+
+		self.git_user = None
+		self.git_email = None
+
 		def git_init(args):
 			if len(args) == 1:
 				Gittle.init(args[0])
 			else:
 				print command_help['init']
 				
-		def git_staged(args):
+		def git_status(args):
 			if len(args) == 0:
 				repo = Gittle('.')
-				repo.diff_working()
+				status = porcelain.status(repo.repo)
+				print status
+
+				#repo.diff_working()
 				#repo.diff(diff_type='changes')
 				#print repo.modified_files.intersection(repo.added_files) #repo.tracked_files.intersection(repo.added_files)
 				#print repo.added_files
 			else:
 				print command_help['git_staged']
-				
+
 		def git_remote(args):
 			'''List remote repos'''
 			if len(args) == 0:
 				repo = Gittle('.')
-				print repo.origin_uri
 				for key, value in repo.remotes.items():
 					print key, value
 			else:
@@ -406,24 +418,52 @@ class Shell(cmd.Cmd):
 
 		def git_clone(args):
 			if len(args) > 0:
-				Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
+				url = args[0]
+
+				#def clone(source, target=None, bare=False, checkout=None, config=None, opener=None, outstream=sys.stdout):
+				repo = Gittle.clone(args[0], args[1] if len(args)>1 else '.', bare=False)
+
+				#porcelain.clone(url, target='.')
+				#repo = Gittle('.')
+
+				#Set the origin
+				config = repo.repo.get_config()
+				config.set(('remote','origin'),'url',url)
+				config.write_to_path()
 			else:
 				print command_help['clone']
 
+
 		def git_push(args):
-			from gittle import GittleAuth
-			if len(args) == 1 or len(args) == 3:
-				if len(args) > 1:
-					user = args[1]
-					pw = args[2]
-					repo = Gittle('.')
-					
-					print repo.push_to(args[0],branch_name=repo.active_branch,username=user,password=pw)
-				else:
-					repo = Gittle('.', origin_uri=args[0])
-					repo.push()
+			import argparse
+			parser = argparse.ArgumentParser(prog='git push'
+											 , usage='git push [http(s)://<remote repo>] [-u username[:password]]'
+											 , description="Push to a remote repository")
+			parser.add_argument('url', type=str, nargs='?', help='URL to push to')
+			parser.add_argument('-u', metavar='username[:password]', type=str, required=False, help='username[:password]')
+			result = parser.parse_args(args)
+
+			user, sep, pw = result.u.partition(':') if result.u else (None,None,None)
+
+			repo = Gittle('.')
+
+			#Try to get the remote origin
+			if not result.url:
+				result.url = repo.remotes['origin']
+
+			branch_name = os.path.join('refs','heads', repo.active_branch)  #'refs/heads/%s' % repo.active_branch
+
+			print "Attempting to push to: {0}, branch: {1}".format(result.url, branch_name)
+
+			if user:
+				if not pw:
+					pw = getpass.getpass('Enter password for {0}: '.format(user))
+
+				opener = auth_urllib2_opener(None, result.url, user, pw)
+
+				print porcelain.push(repo.repo, result.url, branch_name, opener=opener)
 			else:
-				print command_help['push']
+				print porcelain.push(repo.repo, result.url, branch_name)
 
 		def git_modified(args):
 			repo = Gittle('.')
@@ -432,13 +472,10 @@ class Shell(cmd.Cmd):
 
 		def git_log(args):
 			if len(args) <= 1:
-				repo = Gittle('.')
-				#print repo.log()
-				for commit in repo.commit_info(end=int(args[0]) if len(args)==1 else None):
-					print "\n\nCommit {0}\nAuthor: {1}\nDate: {2}\n{3}".format(commit['sha']
-																			, commit['committer']['raw']
-																			, time.strftime("%b %e, %Y %H:%M:%S %z", time.gmtime(commit['time']))
-																			, commit['message'])
+				try:
+					porcelain.log(max_entries=int(args[0]) if len(args)==1 else None)
+				except ValueError:
+					print command_help['log']
 			else:
 				print command_help['log']
 
@@ -468,7 +505,7 @@ class Shell(cmd.Cmd):
 		,'branch': git_branch
 		,'checkout': git_checkout
 		,'remote': git_remote
-		#,'staged': git_staged
+		,'status': git_status
 		,'help': git_help
 		}
 
@@ -479,10 +516,10 @@ class Shell(cmd.Cmd):
 		,'clone': 'git clone <url> [path] - clone a remote repository'
 		,'modified': 'git modified - show what files have been modified'
 		,'log': 'git log [number of changes to show] - show a full log of changes'
-		,'push': 'git push http(s)://<remote repo> [username password] - push changes back to remote'
+		,'push': 'git push [http(s)://<remote repo>] [-u username[:password]] - push changes back to remote'
 		,'checkout': 'git checkout <branch> - check out a particular branch in the Git tree'
 		,'branch': 'git branch - show branches'
-		#,'staged': 'git staged - show staged files (files that are marked for commit)'
+		,'status': 'git status - show status of files (staged, unstaged, untracked)'
 		,'help': 'git help'
 		}
 
@@ -497,7 +534,7 @@ class Shell(cmd.Cmd):
 		except:
 			import traceback
 			traceback.print_exception(sys.exc_type, sys.exc_value, sys.exc_traceback)
-			#traceback.print_tb(sys.exc_traceback)
+			traceback.print_tb(sys.exc_traceback)
 			#print 'Error: {0}'.format(sys.exc_value)
 
 
@@ -540,6 +577,7 @@ class Shell(cmd.Cmd):
 			pipista.pypi_download(modulename)
 		except pipista.PyPiError:
 			print 'Module {0} not found.'.format(modulename)
+
 	def do_psrch(self, search_term):
 		"""Search PyPi for a module"""
 		try:
@@ -551,7 +589,7 @@ class Shell(cmd.Cmd):
 				for key, value in results[i].items():
 					print '\t\t{0}: {1}'.format(key, value)
 		except pipista.PyPiError:
-			print 'Couldn\'t find {0}'.format(searchfor)
+			print 'Couldn\'t find {0}'.format(search_term)
 	def do_pwd(self, line):
 		"""return working directory name"""
 		print self.pprint(os.getcwd())
@@ -1147,6 +1185,7 @@ def _shellista_setup():
 _shellista_setup()
 if globals().get('dulwich'):
 	from dulwich.client import default_user_agent_string
+	from dulwich import porcelain
 
 import contextlib
 @contextlib.contextmanager
@@ -1156,20 +1195,6 @@ def _save_context():
 	yield
 	sys.argv = sys._argv
 	sys.path = sys._path
-
-#Monkeypatch for gittle's push_to
-def push_to(self, origin_uri, branch_name=None, progress=None, username=None, password=None):
-	selector = self._wants_branch(branch_name=branch_name)
-	client, remote_path = self.get_client(origin_uri)
-	if username and password:
-		client.opener = auth_urllib2_opener(None, origin_uri, username, password)
-		
-	return client.send_pack(
-		remote_path,
-		selector,
-		self.repo.object_store.generate_pack_contents,
-		progress=progress
-	)
 
 #Urllib2 opener for dulwich
 def auth_urllib2_opener(config, top_level_url, username, password):
@@ -1202,9 +1227,9 @@ def auth_urllib2_opener(config, top_level_url, username, password):
 	return opener
 
 def main():
-	from gittle import Gittle
+	#from gittle import Gittle
 	
-	Gittle.push_to = push_to
+	#Gittle.push_to = push_to
 	
 	shell = Shell()
 	shell.prompt = '> '
