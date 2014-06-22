@@ -457,10 +457,15 @@ class Shell(cmd.Cmd):
 			
 			keychainservice = 'shellista.git.'+urlparse.urlparse(result.url).netloc
 
+			# if user is empty, try to grab first user with this service
+			# if -u :  (no user or pw, but sep), or of user doesnt exist, prompt for use/pass again
+			# if user is found, but no pw exists, prompt for pw
+			# save keychain only if successful push
 			if not user:
 				try:
-					user = dict(keychain.get_services())[keychainservice]
+					user = dict(keychain.get_services())[keychainservice][0]
 					if sep:
+						# need to reset password or user, so just reprompt		
 						raise KeyError
 				except KeyError:
 					user, pw = console.login_alert('enter credentials for ' + urlparse.urlparse(result.url).netloc)
