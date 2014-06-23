@@ -1,4 +1,4 @@
-import os, cmd, sys, glob, os.path, shutil, zipfile, tarfile, gzip, urllib2, traceback, getpass
+import os, cmd, sys, glob, os.path, shutil, zipfile, tarfile, gzip, urllib2, traceback, getpass, urlparse, keychain, console
 
 try:
 	import ui
@@ -454,16 +454,32 @@ class Shell(cmd.Cmd):
 			branch_name = os.path.join('refs','heads', repo.active_branch)  #'refs/heads/%s' % repo.active_branch
 
 			print "Attempting to push to: {0}, branch: {1}".format(result.url, branch_name)
+			
+			keychainservice = 'shellista.git.'+urlparse.urlparse(result.url).netloc
 
-			if user:
-				if not pw:
-					pw = getpass.getpass('Enter password for {0}: '.format(user))
+			if sep and not user:
+				# -u : clears keychain for this server
+				for service in keychain.get_services():
+					if service[0]==keychainservice:
+						keychain.delete_password(*service)
+						
+			if not user:
+				try:
+					user = dict(keychain.get_services())[keychainservice]
+				except KeyError:
+					user, pw = console.login_alert('enter credentials for ' + urlparse.urlparse(result.url).netloc)
+					
+			if not pw:
+				pw = keychain.get_password(keychainservice,user)	
 
-				opener = auth_urllib2_opener(None, result.url, user, pw)
+			print user
+			opener = auth_urllib2_opener(None, result.url, user, pw)
 
-				print porcelain.push(repo.repo, result.url, branch_name, opener=opener)
-			else:
-				print porcelain.push(repo.repo, result.url, branch_name)
+			print porcelain.push(repo.repo, result.url, branch_name, opener=opener)
+			keychain.set_password(keychainservice,user,pw)
+
+			
+		#	TODO  handle auth failure, allow user to push with no password
 
 		def git_modified(args):
 			repo = Gittle('.')
