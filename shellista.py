@@ -1,4 +1,4 @@
-import os, cmd, sys, glob, os.path, shutil, zipfile, tarfile, gzip, urllib2, traceback, getpass, urlparse, keychain, console
+import os, cmd, sys, glob, os.path, shutil, zipfile, tarfile, gzip, urllib2, traceback, getpass, urlparse
 
 try:
 	import ui
@@ -67,6 +67,7 @@ DULWICH_URL='https://github.com/transistor1/dulwich/archive/master.tar.gz'
 GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
 FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
 MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
+KEYRING_URL='https://pypi.python.org/packages/source/k/keyring/keyring-3.8.zip'
 
 if LOCAL_SITE_PACKAGES:
 	module_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'local-packages')
@@ -467,7 +468,9 @@ class Shell(cmd.Cmd):
 				try:
 					user = dict(keychain.get_services())[keychainservice]
 				except KeyError:
-					user, pw = console.login_alert('enter credentials for ' + urlparse.urlparse(result.url).netloc)
+					#user, pw = console.login_alert('enter credentials for ' + urlparse.urlparse(result.url).netloc)
+					user = getpass.getuser('Please enter username for {0}: '.format(urlparse.urlparse(result.url).netloc))
+					pw = getpass.getpass('Please enter password for {0}: '.format(user))
 					
 			if not pw:
 				pw = keychain.get_password(keychainservice,user)	
@@ -1177,6 +1180,10 @@ def _extract_generic(shell, path, modulename):
 	shell.do_untgz('{0}.tar.gz'.format(modulename))
 	shell.do_mv('{0}/*/{0} {1}/'.format(modulename, module_dir))
 
+def _extract_keyring(shell, path, modulename):
+	shell.do_unzip('{0}.zip'.format(modulename))
+	shell.do_mv('{0}*/{0} {1}/'.format(modulename, module_dir))
+
 def _extract_pipista(shell, path, modulename):
 	shell.do_mv('pipista.py {0}'.format(module_dir))
 
@@ -1191,12 +1198,17 @@ def _shellista_setup():
 	if not module_dir in sys.path:
 		sys.path.insert(0, module_dir + '/')
 
-	
 	_import_optional('pipista', PIPISTA_URL, 'pipista.py', _extract_pipista, ['do_psrch','do_pdown'])
 	_import_optional('dulwich', DULWICH_URL, 'dulwich.tar.gz', _extract_generic, [])
 	_import_optional('funky', FUNKY_URL, 'funky.tar.gz', _extract_generic, [])
 	_import_optional('mimer', MIMER_URL, 'mimer.tar.gz', _extract_generic, [])
 	_import_optional('gittle', GITTLE_URL, 'gittle.tar.gz', _extract_generic, ['do_git'])
+
+	try:
+		import keychain
+	except ImportError:
+		_import_optional('keyring', KEYRING_URL, 'keyring.zip', _extract_keyring, [])
+		globals()['keychain']=globals().pop('keyring')
 	
 _shellista_setup()
 if globals().get('dulwich'):
