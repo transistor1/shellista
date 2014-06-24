@@ -441,7 +441,19 @@ class Shell(cmd.Cmd):
 			else:
 				print command_help['clone']
 
-
+		def git_pull(args):
+			if len(args) <= 1:
+				repo = Gittle('.')
+				url = args[0] if len(args)==1 else repo.remotes.get('origin','')
+				if url:
+					repo.pull(origin_uri=url)
+				else:
+					print 'No pull URL.'
+			else:
+				print command_help['git pull']
+				
+				
+				
 		def git_push(args):
 			import argparse
 			parser = argparse.ArgumentParser(prog='git push'
@@ -457,7 +469,7 @@ class Shell(cmd.Cmd):
 
 			#Try to get the remote origin
 			if not result.url:
-				result.url = repo.remotes['origin']
+				result.url = repo.remotes.get('origin','')
 
 			branch_name = os.path.join('refs','heads', repo.active_branch)  #'refs/heads/%s' % repo.active_branch
 
@@ -491,6 +503,7 @@ class Shell(cmd.Cmd):
 		def git_checkout(args):
 			if len(args) == 1:
 				repo = Gittle('.')
+				repo.clean_working()
 				#repo.checkout('refs/heads/{0}'.format(args[0]))
 				repo.switch_branch('{0}'.format(args[0]))
 			else:
@@ -511,6 +524,7 @@ class Shell(cmd.Cmd):
 		,'modified': git_modified
 		,'log': git_log
 		,'push': git_push
+		,'pull': git_pull
 		,'branch': git_branch
 		,'checkout': git_checkout
 		,'remote': git_remote
@@ -527,6 +541,7 @@ class Shell(cmd.Cmd):
 		,'modified': 'git modified - show what files have been modified'
 		,'log': 'git log [number of changes to show] - show a full log of changes'
 		,'push': 'git push [http(s)://<remote repo>] [-u username[:password]] - push changes back to remote'
+		,'pull': 'git pull [http(s)://<remote repo>] - pull changes from a remote repository'
 		,'checkout': 'git checkout <branch> - check out a particular branch in the Git tree'
 		,'branch': 'git branch - show branches'
 		,'status': 'git status - show status of files (staged, unstaged, untracked)'
