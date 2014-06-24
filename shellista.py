@@ -367,7 +367,8 @@ class Shell(cmd.Cmd):
 				Gittle.init(args[0])
 			else:
 				print command_help['init']
-				
+		
+		
 		def git_status(args):
 			if len(args) == 0:
 				repo = Gittle('.')
@@ -396,6 +397,13 @@ class Shell(cmd.Cmd):
 				repo.stage(args)
 			else:
 				print command_help['add']
+				
+		def git_rm(args):
+			if len(args) > 0:
+				repo = Gittle('.')
+				repo.rm(args)
+			else:
+				print command_help['rm']
 
 		def git_branch(args):
 			if len(args) == 0:
@@ -497,6 +505,7 @@ class Shell(cmd.Cmd):
 		commands = {
 		'init': git_init
 		,'add': git_add
+		,'rm': git_rm
 		,'commit': git_commit
 		,'clone': git_clone
 		,'modified': git_modified
@@ -512,6 +521,7 @@ class Shell(cmd.Cmd):
 		command_help = {
 		'init':  'git init <directory> - initialize a new Git repository'
 		,'add': 'git add <file1> .. [file2] .. - stage one or more files'
+		,'rm': 'git rm <file1> .. [file2] .. - git rm one or more files'
 		,'commit': 'git commit <message> <name> <email> - commit staged files'
 		,'clone': 'git clone <url> [path] - clone a remote repository'
 		,'modified': 'git modified - show what files have been modified'
