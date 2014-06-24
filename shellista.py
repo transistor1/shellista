@@ -566,7 +566,7 @@ class Shell(cmd.Cmd):
 	def do_untgz(self, file):
 		"""Helper to run both ungzip and untar on a file"""
 		result = self.do_ungzip(file, gunzip=True)
-		if (result):
+		if result:
 			self.do_untar(result)
 			if os.path.isfile(result):
 				self.do_rm(result)
@@ -1081,6 +1081,16 @@ class Shell(cmd.Cmd):
 	def do_gunzip(self, line):
 		"""ungzip a gzip archive"""
 		self.do_ungzip(line, gunzip=True)
+		
+	def do_touch(self, line):
+		"""touch a file, either creating it or modifying the modified date"""
+		args = self.bash(line)
+		if len(args) == 1:
+			with open(args[0],'ab+') as f:
+				pass
+		else:
+			print "Couldn't touch file"
+			
 	def do_quit(self,line):
 		"""exit shell"""
 		self.did_quit = True
