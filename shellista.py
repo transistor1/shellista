@@ -60,13 +60,21 @@ LOCAL_SITE_PACKAGES=True
 #  - Running a file directly doesn't work (e.g. 'python somefile.py'), though I tried
 #  - Single-line commands only
 
+__DEBUG__ = True
 
-
-PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
-DULWICH_URL='https://github.com/transistor1/dulwich/archive/master.tar.gz'
-GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
-FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
-MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
+if __DEBUG__:
+	base_url = 'file:///{0}/{1}/{2}'.format(os.path.dirname(os.getcwd()),'shellista-deps','{0}')
+	PIPISTA_URL= base_url.format('pipista.py')
+	DULWICH_URL = base_url.format('dulwich.tar.gz')
+	GITTLE_URL = base_url.format('gittle.tar.gz')
+	FUNKY_URL = base_url.format('funky.tar.gz')
+	MIMER_URL = base_url.format('mimer.tar.gz')
+else:
+	PIPISTA_URL='https://gist.githubusercontent.com/transistor1/0ea245e666189b3e675a/raw/23a23e229d6c279be3bc380c18c22fc2de24ef17/pipista.py'
+	DULWICH_URL='https://github.com/transistor1/dulwich/archive/master.tar.gz'
+	GITTLE_URL='https://github.com/FriendCode/gittle/archive/522ce011851aee28fd6bb11b502978c9352fd137.tar.gz'
+	FUNKY_URL='https://github.com/FriendCode/funky/tarball/e89cb2ce4374bf2069c7f669e52e046f63757241#egg=funky-0.0.1'
+	MIMER_URL='https://github.com/FriendCode/mimer/tarball/a812e5f631b9b5c969df5a2ea84b635490a96ced#egg=mimer-0.0.1'
 
 if LOCAL_SITE_PACKAGES:
 	module_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'local-packages')
@@ -354,11 +362,14 @@ class Shell(cmd.Cmd):
 		"""Very basic Git commands: init, stage, commit, clone, modified, branch"""
 		from gittle import Gittle
 		
+		#TODO: Clean up this code
+		#TODO: git functions should probably all use parseargs, like git push
 		#TODO: These git functions all follow the same pattern.
-		#Refactor these so they only contain their unique logic
-
+		#				Refactor these so they only contain their unique logic
+		#TODO: Add jsbain's keychain addition. Need to figure out how to
+		#				Add ipad-specific modules without breaking Shellista everywhere
 		#TODO: If there is no ~/.gitconfig file, set up the username and password
-
+		
 		self.git_user = None
 		self.git_email = None
 
@@ -367,7 +378,6 @@ class Shell(cmd.Cmd):
 				Gittle.init(args[0])
 			else:
 				print command_help['init']
-		
 		
 		def git_status(args):
 			if len(args) == 0:
@@ -499,13 +509,22 @@ class Shell(cmd.Cmd):
 			else:
 				print command_help['log']
 
-#    def switch_branch(self, branch_name, tracking=None, create=None):
 		def git_checkout(args):
-			if len(args) == 1:
+			if len(args) in [1,2]:
 				repo = Gittle('.')
-				repo.clean_working()
-				#repo.checkout('refs/heads/{0}'.format(args[0]))
-				repo.switch_branch('{0}'.format(args[0]))
+				if len(args) == 1:
+					repo.clean_working()
+					repo.switch_branch('{0}'.format(args[0]))
+				
+				#Temporary hack to get create branch into source
+				#TODO: git functions should probably all user parseargs, like git push
+				if len(args) == 2:
+					if args[0] == '-b':
+						#TODO: Add tracking as a parameter
+						print "Creating branch {0}".format(args[1])
+						repo.create_branch(repo.active_branch, args[1], tracking=None)
+						#Recursive call to checkout the branch we just created
+						git_checkout([args[1]])						
 			else:
 				print command_help['checkout']
 
