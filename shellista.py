@@ -59,6 +59,8 @@ import contextlib
 import shutil
 import glob
 import urlparse
+import os
+import sys
 
 
 #Thin wrapper around Exception
