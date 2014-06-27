@@ -50,6 +50,7 @@ if __DEBUG__:
 else:
     PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
 
+
 #Imports for ModuleInstaller
 import mimetypes
 import tarfile
@@ -68,22 +69,24 @@ class ModuleDownloadException(Exception):
     pass
 
 class ModuleInstaller():
-    url = ''
-    mime_type = None
-    download_name = ''
-    module_path = ''
-    move_to = ''
-    working_dir = '.'
-    module_name = ''
-    install_root = ''
-
-    def __init__(self, url, working_dir='./.module_installer'):
+    url = '' #Download URI
+    mime_type = None #Mime type of downloaded file
+    download_name = '' #Local download name
+    module_path = '' #Relative install path of module
+    move_to = '' #Move module to folder relative to install_root
+    working_dir = '' #Work is done in this folder
+    module_name = '' #Local name of module
+    install_root = '' #Root folder where ModuleInstaller starts from
+    full_install_path = '' #Absolete path to move_to
+    
+    def __init__(self, url, working_dir='./.module_installer', root_dir=None):
         '''Initialize ModuleInstaller.  Url should contain a fragment (#) with
         :param url: URL of file to install
         query parameters:
         http(s)://url/file.tar.gz#module_name=modname&module_path=Some/Path&move_to=/
         module_name = local name of the module
-        module_path = relative path, once the module has been extracted, to the module dir to "install".
+        save_as = force download to save as name
+        module_path = relative path, once the module has been extracted, to the module dir to "install" (copy the folder/file to the move_to path)
         move_to = path to extract the module to, relative to install_root
         '''
         mimetypes.init()
@@ -92,21 +95,77 @@ class ModuleInstaller():
         parsed_url = urlparse.urlparse(url)
         qs = urlparse.parse_qs(parsed_url.fragment)
 
-        if not qs.get('module_name') or not qs.get('module_path') or not qs.get('move_to'):
-            raise ModuleDownloadException('ModuleInstaller: Missing query string parameters')
+        #Make sure required query params exist
+        if not qs.get('module_name') \
+            or not qs.get('module_path') \
+            or not qs.get('move_to'):
+                raise ModuleDownloadException('ModuleInstaller: Missing query string parameters')
 
         self.module_path = qs['module_path'][0]
         self.move_to = qs['move_to'][0]
         self.mime_type = mimetypes.guess_type(parsed_url.path)
         self.working_dir = os.path.abspath(working_dir)
-        self.module_name = qs['module_name'][0]
-
+        self.module_name = qs['module_name'][0]   
+        
         ext = os.path.splitext(parsed_url.path)
         ext = os.path.splitext(ext[0])[1] + ext[1] #In case it's a .tar.gz
 
-        self.download_name = self.module_name + ext
-        self.install_root = os.getcwd()
+        save_as = qs.get('save_as')
+        self.download_name = save_as[0] if save_as else self.module_name + ext
+        
+        #Try to get the mime type from save_as name, if one doesn't exist
+        if not self.mime_type[0]:
+            self.mime_type = mimetypes.guess_type(self.download_name)
+        
+        self.install_root = root_dir if root_dir else os.getcwd()
+        
+        #Absolute path where the modules will be installed
+        self.full_install_path = os.path.join(self.install_root, self.move_to)
+        
+    def _global_import(self, modulename):
+        module = importlib.import_module(modulename)
+        globals()[modulename] = module
+        
+        #module = __import__(modulename, globals(), locals())
+        #globals()[modulename]=module
+        #sys.modules[modulename] = module
+        
+    def _get_file_dir(self):
+        return os.path.dirname(os.path.abspath(__file__))
+        
+    def _mkworkdir(self):
+        '''Create the working directory'''
+        if not os.path.exists(self.working_dir):
+            os.mkdir(self.working_dir)
 
+    def _rmworkdir(self):
+        '''Remove the working directory'''
+        if os.path.exists(self.working_dir):
+            shutil.rmtree(self.working_dir)
+            
+    def _touch_file(self, path):
+        with open(path, 'w') as touch:
+            pass        
+
+    def _glob_expand_path(self, glob_path):
+        '''Return the first glob matched entry'''
+        glob_result = glob.glob(glob_path)
+        if len(glob_result) > 0:
+            return glob_result[0]
+
+    def _workpath(self, *args):
+        '''Helper to get a subfolder of working path'''
+        return os.path.join(self.working_dir, *args)
+
+    def _add_module_path(self):
+        '''Add the installed module path to sys.path'''
+        mod_path = self.full_install_path + os.sep
+        if not os.path.exists(mod_path):
+            os.makedirs(mod_path)
+            
+        if not mod_path in sys.path:
+            sys.path.insert(0, self.full_install_path + os.sep)
+            
     def untgz(self, name, to='.'):
         tfile = tarfile.open(name, 'r:gz')
         tfile.extractall(to)
@@ -114,8 +173,20 @@ class ModuleInstaller():
     def unzip(self, name, to='.'):
         zfile = zipfile.ZipFile(name)
         zfile.extractall(to)
-
-
+        
+    
+    def try_import(self):
+        self._add_module_path()
+        self._global_import(self.module_name)
+    
+    def try_import_or_install(self, progress_func=None, overwrite_existing=False):
+        '''Try to import the module. Failing that, download it.'''
+        try:
+            self.try_import()
+        except ImportError:
+            self.module_install(progress_func, overwrite_existing)
+            self.try_import()
+            
     #From mark_harris' wget
     def download(self, url, dst=None, progress_func=None):
         '''Download a file from url, optionally naming it locally'''
@@ -134,58 +205,63 @@ class ModuleInstaller():
                         if progress_func:
                             progress_func(total)
         except Exception as e:
-            raise ModuleDownloadException
+            raise ModuleDownloadException(e)
             #print 'Download error: ', e
 
-    def _mkworkdir(self):
-        '''Create the working directory'''
-        if not os.path.exists(self.working_dir):
-            os.mkdir(self.working_dir)
-
-    def _rmworkdir(self):
-        '''Remove the working directory'''
-        if os.path.exists(self.working_dir):
-            shutil.rmtree(self.working_dir)
-
-    def _glob_expand_path(self, glob_path):
-        '''Return the first glob matched entry'''
-        glob_result = glob.glob(glob_path)
-        if len(glob_result) > 0:
-            return glob_result[0]
-
-    def _workpath(self, *args):
-        '''Helper to get a subfolder of working path'''
-        return os.path.join(self.working_dir, *args)
-
-    def module_install(self, progress_func=None):
+    def module_install(self, progress_func=None, overwrite_existing=False):
         '''Module "installer" for pure Python modules.'''
         try:
+            #If the work dir already exists, delete it.
+            self._rmworkdir()
+            
+            #Remake the work dir
             self._mkworkdir()
-
+            
             self.download(self.url, self._workpath(self.download_name), progress_func)
 
             extract_func =  {
                               ('application/x-tar', 'gzip'): self.untgz,
                               ('application/zip', None): self.unzip,
+                              ('text/x-python', None): None,
                             }[self.mime_type]
 
-            extract_func(self._workpath(self.download_name), self._workpath())
-
+            if extract_func:
+                extract_func(self._workpath(self.download_name), self._workpath())
             module_full_path = self._workpath(self.module_path)
 
             src = self._glob_expand_path(module_full_path)
-            move_to = self.move_to
+            #move_to = self.move_to
 
             #Strip leading slash, if any
-            if move_to.startswith(os.pathsep):
-                move_to = move_to[1:]
-
-            dst = os.path.join(self.install_root, self.move_to)
-
-            #Move the source folder to the dest
-            shutil.move(src, os.path.join(dst, os.path.basename(src)))
-
-            self._rmworkdir() #Clean up
+            #if move_to.startswith(os.pathsep):
+            #    move_to = move_to[1:]
+            
+            #Absolute path where the modules will be installed
+            #dst = os.path.join(self.install_root, self.move_to)
+            
+            dst = self.full_install_path
+            
+            if not os.path.exists(dst):
+                os.makedirs(dst)
+            
+            
+            try:
+                if overwrite_existing:
+                    existing = os.path.join(dst, os.path.basename(src))
+                    if os.path.exists(existing):
+                        if os.path.isdir(existing):
+                            shutil.rmtree(existing)
+                        else:
+                            os.unlink(existing)
+                
+                
+                #Move the source folder to the dest
+                shutil.move(src, os.path.join(dst, os.path.basename(src)))
+            except Exception as e:
+                raise e
+                raise ModuleDownloadException('Module: {0} - Can\'t find directory module_path. Please check that the module was extracted correctly, and into the proper directory.'.format(self.module_name))
+            
+            self._rmworkdir()
         except Exception as e:
             raise ModuleDownloadException(e)
 
@@ -200,7 +276,9 @@ def _check_for_plugins():
         installer.module_install()
 
 class Shellista(cmd.Cmd):
-
+    PRECMD_PLUGINS = []
+    POSTCMD_PLUGINS = []
+    
     def __init__(self):
         self.did_quit = False
         self.cmdList = ['quit','exit','logoff','logout',]
@@ -235,7 +313,7 @@ class Shellista(cmd.Cmd):
                         if lib.__doc__:
                             setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
                     except (ImportError, AttributeError) as desc:
-                        print('Exception error')
+                        print('Exception error: ' + lib.__name__ if lib else '')
                         import traceback
                         traceback.print_exc()
                         #traceback.print_tb(sys.exc_traceback)
@@ -288,7 +366,25 @@ class Shellista(cmd.Cmd):
     def do_logoff(self,line):
         self.did_quit = True
 
-    def postcmd(self,stop,line):
+    @classmethod
+    def precmd_plugin(cls, func):
+        cls.PRECMD_PLUGINS.append(func)
+        print cls.PRECMD_PLUGINS
+    
+    @classmethod    
+    def postcmd_plugin(cls, func):
+        cls.POSTCMD_PLUGINS.append(func)
+
+    def precmd(self, line):
+        plugins = self.PRECMD_PLUGINS
+        for plugin in plugins:
+            plugin(line)
+        return cmd.Cmd.precmd(self, line)
+        
+    def postcmd(self, stop, line):
+        plugins = self.POSTCMD_PLUGINS
+        for plugin in plugins:
+            plugin(stop, line)
         return self.did_quit
 
     def addCmdList(self,name):
@@ -315,7 +411,9 @@ class Shellista(cmd.Cmd):
     def emptyline(self):
         pass
 
+if __name__ == '__main__':
+    _check_for_plugins()
+    shell = Shellista()
+    shell.cmdloop()
+    
 
-_check_for_plugins()
-shell = Shellista()
-shell.cmdloop()
