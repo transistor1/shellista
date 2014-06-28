@@ -36,11 +36,10 @@ import importlib
 # This has advantages over shlex, glob, and shlex->glob in that it expects
 # the strings to represent files from the start.
 
-#PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
-
-#PLUGINS_URL='https://github.com/transistor1/shellista-hybrid/archive/master.tar.gz#module_name=plugins&module_path=shellista-hybrid-master/plugins&move_to=.'
-
-#PLUGINS_URL='https://github.com/transistor1/shellista/archive/master.tar.gz#module_name=plugins&module_path=shellista-master&move_to=./plugins'
+#This will allow us to access the Shellista instance from plugins:
+#shellista = sys.modules['__main__']
+#shellista.shell.do_something(...)
+shell = None
 
 __DEBUG__ = True
 
@@ -412,8 +411,9 @@ class Shellista(cmd.Cmd):
         pass
 
 if __name__ == '__main__':
-    _check_for_plugins()
-    shell = Shellista()
-    shell.cmdloop()
+    if not shell:
+        _check_for_plugins()
+        shell = Shellista()
+        shell.cmdloop()
     
 
