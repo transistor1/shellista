@@ -36,18 +36,22 @@ import importlib
 # This has advantages over shlex, glob, and shlex->glob in that it expects
 # the strings to represent files from the start.
 
-#This will allow us to access the Shellista instance from plugins:
-#shellista = sys.modules['__main__']
-#shellista.shell.do_something(...)
+#PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
+
+#PLUGINS_URL='https://github.com/transistor1/shellista-hybrid/archive/master.tar.gz#module_name=plugins&module_path=shellista-hybrid-master/plugins&move_to=.'
+
+#PLUGINS_URL='https://github.com/transistor1/shellista/archive/master.tar.gz#module_name=plugins&module_path=shellista-master&move_to=./plugins'
+
 shell = None
 
-__DEBUG__ = True
+__DEBUG__ = False
 
 if __DEBUG__:
     base_url = 'file:///{0}/{1}/{2}'.format(os.path.dirname(os.getcwd()),'shellista-deps','{0}')
     PLUGINS_URL= base_url.format('ShellistaExt-master.tar.gz#module_name=plugins&module_path=ShellistaExt/ShellistaExt/plugins&move_to=.')
 else:
-    PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
+    #PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
+    PLUGINS_URL='https://github.com/transistor1/ShellistaExt/archive/dev-modular.zip#module_name=plugins&module_path=ShellistaExt-*/ShellistaExt/plugins&move_to=.'
 
 
 #Imports for ModuleInstaller
