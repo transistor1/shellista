@@ -281,7 +281,11 @@ def _check_for_plugins():
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
     POSTCMD_PLUGINS = []
-    
+
+    #TODO: Use ConfigParser to set initial values, add
+    #       plugin to manage settings
+    settings = {}
+
     def __init__(self):
         self.did_quit = False
         self.cmdList = ['quit','exit','logoff','logout',]
