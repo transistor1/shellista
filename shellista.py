@@ -339,11 +339,11 @@ class Shellista(cmd.Cmd):
             print "Syntax Error: %s" % e
             return None
 
-    def _CmdGenerator(self,function):
+    def _CmdGenerator(self, function):
         def CmdProxy(self, line):
             #args = [name]
             #args.extend(shlex.split(line))
-            function(line)
+            function(self, line)
             self.getPrompt()
 
         return CmdProxy
