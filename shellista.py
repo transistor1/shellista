@@ -44,14 +44,8 @@ import importlib
 
 shell = None
 
-__DEBUG__ = False
-
-if __DEBUG__:
-    base_url = 'file:///{0}/{1}/{2}'.format(os.path.dirname(os.getcwd()),'shellista-deps','{0}')
-    PLUGINS_URL= base_url.format('ShellistaExt-master.tar.gz#module_name=plugins&module_path=ShellistaExt/ShellistaExt/plugins&move_to=.')
-else:
-    #PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
-    PLUGINS_URL='https://github.com/transistor1/ShellistaExt/archive/dev-modular.zip#module_name=plugins&module_path=ShellistaExt-*/ShellistaExt/plugins&move_to=.'
+PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
+GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=plugins&module_path=shellista-git*/git&move_to=plugins/extensions'
 
 
 #Imports for ModuleInstaller
@@ -80,7 +74,7 @@ class ModuleInstaller():
     working_dir = '' #Work is done in this folder
     module_name = '' #Local name of module
     install_root = '' #Root folder where ModuleInstaller starts from
-    full_install_path = '' #Absolete path to move_to
+    full_install_path = '' #Absolute path to move_to
     
     def __init__(self, url, working_dir='./.module_installer', root_dir=None):
         '''Initialize ModuleInstaller.  Url should contain a fragment (#) with
@@ -89,7 +83,8 @@ class ModuleInstaller():
         http(s)://url/file.tar.gz#module_name=modname&module_path=Some/Path&move_to=/
         module_name = local name of the module
         save_as = force download to save as name
-        module_path = relative path, once the module has been extracted, to the module dir to "install" (copy the folder/file to the move_to path)
+        module_path = relative path, once the module has been extracted, to the
+         module dir to "install" (copy the folder/file to the move_to path)
         move_to = path to extract the module to, relative to install_root
         '''
         mimetypes.init()
@@ -211,8 +206,15 @@ class ModuleInstaller():
             raise ModuleDownloadException(e)
             #print 'Download error: ', e
 
-    def module_install(self, progress_func=None, overwrite_existing=False):
-        '''Module "installer" for pure Python modules.'''
+    def module_install(self, progress_func=None, overwrite_existing=False,
+                       post_install_hook=None):
+        '''Module "installer" for pure Python modules.
+            :param progress_func: A callback function to display progress
+            :param overwrite_existing: A boolean to indicate whether to overwrite existing
+                destination
+            :param post_install_hook: A callback to do install-specific
+                things after the install
+        '''
         try:
             #If the work dir already exists, delete it.
             self._rmworkdir()
@@ -265,6 +267,10 @@ class ModuleInstaller():
                 raise ModuleDownloadException('Module: {0} - Can\'t find directory module_path. Please check that the module was extracted correctly, and into the proper directory.'.format(self.module_name))
             
             self._rmworkdir()
+
+            if post_install_hook:
+                post_install_hook(self)
+
         except Exception as e:
             raise ModuleDownloadException(e)
 
@@ -276,7 +282,21 @@ def _check_for_plugins():
         print 'Downloading plugins...'
         #os.mkdir('plugins')
         installer = ModuleInstaller(PLUGINS_URL)
+        installer.module_install(post_install_hook=_core_post_install)
+
+        #Create the extensions dir
+        ext_dir = os.path.join(plugins_parent, 'plugins', 'extensions')
+        os.mkdir(ext_dir)
+
+        #Add an __init__.py file in extensions
+        installer._touch_file(os.path.join(ext_dir, '__init__.py'))
+
+        installer = ModuleInstaller(GIT_URL)
         installer.module_install()
+
+def _core_post_install(installer):
+    plugins_parent = os.path.join(os.path.dirname(__file__))
+    shutil.move(installer._glob_expand_path(os.path.join(plugins_parent, 'shellista-core*')), 'plugins')
 
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
