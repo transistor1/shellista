@@ -45,7 +45,7 @@ import importlib
 shell = None
 
 PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
-GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=plugins&module_path=shellista-git*/git&move_to=plugins/extensions'
+GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
 
 
 #Imports for ModuleInstaller
@@ -148,8 +148,10 @@ class ModuleInstaller():
     def _glob_expand_path(self, glob_path):
         '''Return the first glob matched entry'''
         glob_result = glob.glob(glob_path)
-        if len(glob_result) > 0:
+        if len(glob_result) == 1:
             return glob_result[0]
+        else:
+            raise ModuleDownloadException('Ambiguous path match detected: {0}'.format(glob_path))
 
     def _workpath(self, *args):
         '''Helper to get a subfolder of working path'''
@@ -224,32 +226,43 @@ class ModuleInstaller():
             
             self.download(self.url, self._workpath(self.download_name), progress_func)
 
-            extract_func =  {
+            extract_func = {
                               ('application/x-tar', 'gzip'): self.untgz,
                               ('application/zip', None): self.unzip,
                               ('text/x-python', None): None,
                             }[self.mime_type]
 
+            #If there is an extraction function for the filetype, call it
             if extract_func:
                 extract_func(self._workpath(self.download_name), self._workpath())
+
+            #Get the full path to the extracted module
             module_full_path = self._workpath(self.module_path)
 
+            #Expand any wildcards in module_path
             src = self._glob_expand_path(module_full_path)
+
+            #Rename module folder
+            if os.path.isdir(src) and os.path.basename(src) != self.module_name:
+                new_name = os.path.join(os.path.dirname(src), self.module_name)
+                os.rename(src, new_name)
+                src = new_name
+
             #move_to = self.move_to
 
             #Strip leading slash, if any
             #if move_to.startswith(os.pathsep):
-            #    move_to = move_to[1:]
+            #    monew_nameve_to = move_to[1:]
             
             #Absolute path where the modules will be installed
             #dst = os.path.join(self.install_root, self.move_to)
             
             dst = self.full_install_path
-            
+
             if not os.path.exists(dst):
                 os.makedirs(dst)
-            
-            
+
+
             try:
                 if overwrite_existing:
                     existing = os.path.join(dst, os.path.basename(src))
@@ -282,7 +295,7 @@ def _check_for_plugins():
         print 'Downloading plugins...'
         #os.mkdir('plugins')
         installer = ModuleInstaller(PLUGINS_URL)
-        installer.module_install(post_install_hook=_core_post_install)
+        installer.module_install()
 
         #Create the extensions dir
         ext_dir = os.path.join(plugins_parent, 'plugins', 'extensions')
@@ -292,18 +305,21 @@ def _check_for_plugins():
         installer._touch_file(os.path.join(ext_dir, '__init__.py'))
 
         installer = ModuleInstaller(GIT_URL)
-        installer.module_install()
+        installer.module_install(post_install_hook=_do_checkout())
 
 def _core_post_install(installer):
     plugins_parent = os.path.join(os.path.dirname(__file__))
     shutil.move(installer._glob_expand_path(os.path.join(plugins_parent, 'shellista-core*')), 'plugins')
+
+def _do_checkout():
+    pass
 
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
     POSTCMD_PLUGINS = []
 
     #TODO: Use ConfigParser to set initial values, add
-    #       plugin to manage settings
+    #    plugin to manage settings
     settings = {}
 
     def __init__(self):
