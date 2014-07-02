@@ -341,39 +341,41 @@ class Shellista(cmd.Cmd):
                 (path, extension) = os.path.splitext(file)
 
                 if extension == '.py' and path != '__init__' and '_plugin' in path:
-                    try:
-
-                        lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
-                        name = 'do_'+path.lower().replace('_plugin','')
-                        if self.addCmdList(path.lower()):
-                            setattr(Shellista, name, self._CmdGenerator(lib.main))
-
-                        try:
-                            for a in lib.alias:
-                            #pass
-                                if self.addCmdList(a):
-                                    parent = path.lower().replace('_plugin','')
-                                    setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
-                                    setattr(Shellista,'help_'+a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
-
-                        except (ImportError, AttributeError) as desc:
-                            pass
-
-
-
-                        if lib.__doc__:
-                            setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
-                    except (ImportError, AttributeError) as desc:
-                        print('Exception error: ' + lib.__name__ if lib else '')
-                        import traceback
-                        traceback.print_exc()
-                        #traceback.print_tb(sys.exc_traceback)
-                        #print(desc)
-
+                    self._hook_plugin_main(root, path)
 
         cmd.Cmd.__init__(self)
         os.chdir(os.path.expanduser('~/Documents'))
         self.getPrompt()
+
+    def _hook_plugin_main(self, root, path):
+	try:
+
+	    lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
+	    name = 'do_'+path.lower().replace('_plugin','')
+	    if self.addCmdList(path.lower()):
+		setattr(Shellista, name, self._CmdGenerator(lib.main))
+
+	    try:
+		for a in lib.alias:
+		#pass
+		    if self.addCmdList(a):
+			parent = path.lower().replace('_plugin','')
+			setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
+			setattr(Shellista,'help_'+a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
+
+	    except (ImportError, AttributeError) as desc:
+		pass
+
+
+
+	    if lib.__doc__:
+		setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
+	except (ImportError, AttributeError) as desc:
+	    print('Exception error: ' + lib.__name__ if lib else '')
+	    import traceback
+	    traceback.print_exc()
+	    #traceback.print_tb(sys.exc_traceback)
+	    #print(desc)
 
     def bash(self, argstr):
         try:
