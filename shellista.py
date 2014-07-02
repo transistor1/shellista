@@ -46,7 +46,7 @@ shell = None
 
 PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
 GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
-PLUGINS_PLUGIN_GIT='../shellista-plugins'
+PLUGINS_PLUGIN_GIT='https://github.com/transistor1/shellista-plugins.git'
 
 #Imports for ModuleInstaller
 import mimetypes
@@ -308,7 +308,7 @@ def _check_for_plugins():
         installer.module_install(post_install_hook=_do_checkout())
 
         #Clone the plugins repo
-        _do_clone(PLUGINS_PLUGIN_GIT)
+        _do_clone('plugin', PLUGINS_PLUGIN_GIT)
 
 def _do_checkout():
     pass
