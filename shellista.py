@@ -46,7 +46,7 @@ shell = None
 
 PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
 GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
-
+PLUGINS_PLUGIN_GIT='../shellista-plugins'
 
 #Imports for ModuleInstaller
 import mimetypes
@@ -307,12 +307,20 @@ def _check_for_plugins():
         installer = ModuleInstaller(GIT_URL)
         installer.module_install(post_install_hook=_do_checkout())
 
-def _core_post_install(installer):
-    plugins_parent = os.path.join(os.path.dirname(__file__))
-    shutil.move(installer._glob_expand_path(os.path.join(plugins_parent, 'shellista-core*')), 'plugins')
+        #Clone the plugins repo
+        _do_clone(PLUGINS_PLUGIN_GIT)
 
 def _do_checkout():
     pass
+
+def _do_clone(extension_name, url):
+    import plugins.extensions.git.git_plugin as git
+    cwd = os.getcwd()
+    dir_name = os.path.join('plugins', 'extensions', extension_name)
+    os.mkdir(dir_name)
+    os.chdir(dir_name)
+    git.do_git('clone {0}'.format(url))
+    os.chdir(cwd)
 
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
