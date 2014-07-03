@@ -314,20 +314,21 @@ def _do_checkout():
     pass
 
 def _do_clone(extension_name, url):
+    import plugins.extensions.git.git_plugin as git
     dir_name = os.path.join('plugins', 'extensions', extension_name)
+    os.mkdir(dir_name)
     with _context_chdir(dir_name):
-        import plugins.extensions.git.git_plugin as git
-        os.mkdir(dir_name)
-        os.chdir(dir_name)
         git.do_git('clone {0}'.format(url))
         
 @contextlib.contextmanager
-def _context_chdir(new_path):
+def _context_chdir(new_path, create_path=False):
+    '''Change directories, saving the old path. To be used in
+         a with statement'''
     os._old_path = os.getcwd()
     os.chdir(new_path)
     yield
     os.chdir(os._old_path)
-
+    
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
     POSTCMD_PLUGINS = []
