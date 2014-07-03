@@ -2,6 +2,7 @@ import os
 import cmd
 import shlex
 import importlib
+import sys
 
 # Credits
 #
@@ -360,7 +361,7 @@ class Shellista(cmd.Cmd):
             try:
                 lib = None
                 
-                print 'root: {0}\npath:{1}\ncurdir:{2}\n'.format(root, path, os.getcwd())
+                #print 'root: {0}\npath:{1}\ncurdir:{2}\n'.format(root, path, os.getcwd())
                 
                 #Strip path.
                 #TODO: Remove filesystem-specific path stuff
