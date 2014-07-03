@@ -314,13 +314,19 @@ def _do_checkout():
     pass
 
 def _do_clone(extension_name, url):
-    import plugins.extensions.git.git_plugin as git
-    cwd = os.getcwd()
     dir_name = os.path.join('plugins', 'extensions', extension_name)
-    os.mkdir(dir_name)
-    os.chdir(dir_name)
-    git.do_git('clone {0}'.format(url))
-    os.chdir(cwd)
+    with _context_chdir(dir_name):
+        import plugins.extensions.git.git_plugin as git
+        os.mkdir(dir_name)
+        os.chdir(dir_name)
+        git.do_git('clone {0}'.format(url))
+        
+@contextlib.contextmanager
+def _context_chdir(new_path):
+    os._old_path = os.getcwd()
+    os.chdir(new_path)
+    yield
+    os.chdir(os._old_path)
 
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
@@ -348,35 +354,44 @@ class Shellista(cmd.Cmd):
         self.getPrompt()
 
     def _hook_plugin_main(self, root, path):
-        try:
-            lib = None
-            print 'root:{0} path:{1}'.format(root, path)
-            lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
-            name = 'do_'+path.lower().replace('_plugin','')
-            if self.addCmdList(path.lower()):
-                setattr(Shellista, name, self._CmdGenerator(lib.main))
-
+        #Change directory, changing back to old dir when finished
+        with _context_chdir(os.path.dirname(__file__)):
             try:
-                for a in lib.alias:
-                #pass
-                    if self.addCmdList(a):
-                        parent = path.lower().replace('_plugin','')
-                        setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
-                        setattr(Shellista,'help_'+a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
-
+                lib = None
+                
+                print 'root: {0}\npath:{1}\ncurdir:{2}\n'.format(root, path, os.getcwd())
+                
+                #Strip path.
+                #TODO: Remove filesystem-specific path stuff
+                if root[:2] == './':
+                    root = root[2:]
+                    
+                lib = importlib.import_module(root.replace('/','.') + '.' + path)
+                name = 'do_' + path.lower().replace('_plugin','')
+                if self.addCmdList(path.lower()):
+                    setattr(Shellista, name, self._CmdGenerator(lib.main))
+    
+                try:
+                    for a in lib.alias:
+                    #pass
+                        if self.addCmdList(a):
+                            parent = path.lower().replace('_plugin','')
+                            setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
+                            setattr(Shellista,'help_' + a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
+    
+                except (ImportError, AttributeError) as desc:
+                    pass
+    
+    
+    
+                if lib.__doc__:
+                    setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
             except (ImportError, AttributeError) as desc:
-                pass
-
-
-
-            if lib.__doc__:
-                setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
-        except (ImportError, AttributeError) as desc:
-            print('Exception error: ' + lib.__name__ if lib else '')
-            import traceback
-            traceback.print_exc()
-            #traceback.print_tb(sys.exc_traceback)
-            #print(desc)
+                print('Exception error: ' + lib.__name__ if lib else '')
+                import traceback
+                traceback.print_exc()
+                #traceback.print_tb(sys.exc_traceback)
+                #print(desc)
 
     def bash(self, argstr):
         try:
@@ -449,12 +464,6 @@ class Shellista(cmd.Cmd):
         else:
             self.cmdList.append(name)
             return True
-
-
-
-
-
-
 
     def getPrompt(self):
         prompt = os.path.relpath(os.getcwd(),os.path.expanduser('~'))
