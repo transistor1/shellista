@@ -75,7 +75,7 @@ class ModuleInstaller():
     module_name = '' #Local name of module
     install_root = '' #Root folder where ModuleInstaller starts from
     full_install_path = '' #Absolute path to move_to
-    
+
     def __init__(self, url, working_dir='./.module_installer', root_dir=None):
         '''Initialize ModuleInstaller.  Url should contain a fragment (#) with
         :param url: URL of file to install
@@ -97,40 +97,40 @@ class ModuleInstaller():
         if not qs.get('module_name') \
             or not qs.get('module_path') \
             or not qs.get('move_to'):
-                raise ModuleDownloadException('ModuleInstaller: Missing query string parameters')
+            raise ModuleDownloadException('ModuleInstaller: Missing query string parameters')
 
         self.module_path = qs['module_path'][0]
         self.move_to = qs['move_to'][0]
         self.mime_type = mimetypes.guess_type(parsed_url.path)
         self.working_dir = os.path.abspath(working_dir)
-        self.module_name = qs['module_name'][0]   
-        
+        self.module_name = qs['module_name'][0]
+
         ext = os.path.splitext(parsed_url.path)
         ext = os.path.splitext(ext[0])[1] + ext[1] #In case it's a .tar.gz
 
         save_as = qs.get('save_as')
         self.download_name = save_as[0] if save_as else self.module_name + ext
-        
+
         #Try to get the mime type from save_as name, if one doesn't exist
         if not self.mime_type[0]:
             self.mime_type = mimetypes.guess_type(self.download_name)
-        
+
         self.install_root = root_dir if root_dir else os.getcwd()
-        
+
         #Absolute path where the modules will be installed
         self.full_install_path = os.path.join(self.install_root, self.move_to)
-        
+
     def _global_import(self, modulename):
         module = importlib.import_module(modulename)
         globals()[modulename] = module
-        
+
         #module = __import__(modulename, globals(), locals())
         #globals()[modulename]=module
         #sys.modules[modulename] = module
-        
+
     def _get_file_dir(self):
         return os.path.dirname(os.path.abspath(__file__))
-        
+
     def _mkworkdir(self):
         '''Create the working directory'''
         if not os.path.exists(self.working_dir):
@@ -140,10 +140,10 @@ class ModuleInstaller():
         '''Remove the working directory'''
         if os.path.exists(self.working_dir):
             shutil.rmtree(self.working_dir)
-            
+
     def _touch_file(self, path):
         with open(path, 'w') as touch:
-            pass        
+            pass
 
     def _glob_expand_path(self, glob_path):
         '''Return the first glob matched entry'''
@@ -162,10 +162,10 @@ class ModuleInstaller():
         mod_path = self.full_install_path + os.sep
         if not os.path.exists(mod_path):
             os.makedirs(mod_path)
-            
+
         if not mod_path in sys.path:
             sys.path.insert(0, self.full_install_path + os.sep)
-            
+
     def untgz(self, name, to='.'):
         tfile = tarfile.open(name, 'r:gz')
         tfile.extractall(to)
@@ -173,12 +173,12 @@ class ModuleInstaller():
     def unzip(self, name, to='.'):
         zfile = zipfile.ZipFile(name)
         zfile.extractall(to)
-        
-    
+
+
     def try_import(self):
         self._add_module_path()
         self._global_import(self.module_name)
-    
+
     def try_import_or_install(self, progress_func=None, overwrite_existing=False):
         '''Try to import the module. Failing that, download it.'''
         try:
@@ -186,7 +186,7 @@ class ModuleInstaller():
         except ImportError:
             self.module_install(progress_func, overwrite_existing)
             self.try_import()
-            
+
     #From mark_harris' wget
     def download(self, url, dst=None, progress_func=None):
         '''Download a file from url, optionally naming it locally'''
@@ -220,10 +220,10 @@ class ModuleInstaller():
         try:
             #If the work dir already exists, delete it.
             self._rmworkdir()
-            
+
             #Remake the work dir
             self._mkworkdir()
-            
+
             self.download(self.url, self._workpath(self.download_name), progress_func)
 
             extract_func = {
@@ -253,10 +253,10 @@ class ModuleInstaller():
             #Strip leading slash, if any
             #if move_to.startswith(os.pathsep):
             #    monew_nameve_to = move_to[1:]
-            
+
             #Absolute path where the modules will be installed
             #dst = os.path.join(self.install_root, self.move_to)
-            
+
             dst = self.full_install_path
 
             if not os.path.exists(dst):
@@ -271,14 +271,14 @@ class ModuleInstaller():
                             shutil.rmtree(existing)
                         else:
                             os.unlink(existing)
-                
-                
+
+
                 #Move the source folder to the dest
                 shutil.move(src, os.path.join(dst, os.path.basename(src)))
             except Exception as e:
                 raise e
                 raise ModuleDownloadException('Module: {0} - Can\'t find directory module_path. Please check that the module was extracted correctly, and into the proper directory.'.format(self.module_name))
-            
+
             self._rmworkdir()
 
             if post_install_hook:
@@ -348,34 +348,35 @@ class Shellista(cmd.Cmd):
         self.getPrompt()
 
     def _hook_plugin_main(self, root, path):
-	try:
+        try:
+            lib = None
             print 'root:{0} path:{1}'.format(root, path)
-	    lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
-	    name = 'do_'+path.lower().replace('_plugin','')
-	    if self.addCmdList(path.lower()):
-		setattr(Shellista, name, self._CmdGenerator(lib.main))
+            lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
+            name = 'do_'+path.lower().replace('_plugin','')
+            if self.addCmdList(path.lower()):
+                setattr(Shellista, name, self._CmdGenerator(lib.main))
 
-	    try:
-		for a in lib.alias:
-		#pass
-		    if self.addCmdList(a):
-			parent = path.lower().replace('_plugin','')
-			setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
-			setattr(Shellista,'help_'+a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
+            try:
+                for a in lib.alias:
+                #pass
+                    if self.addCmdList(a):
+                        parent = path.lower().replace('_plugin','')
+                        setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
+                        setattr(Shellista,'help_'+a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
 
-	    except (ImportError, AttributeError) as desc:
-		pass
+            except (ImportError, AttributeError) as desc:
+                pass
 
 
 
-	    if lib.__doc__:
-		setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
-	except (ImportError, AttributeError) as desc:
-	    print('Exception error: ' + lib.__name__ if lib else '')
-	    import traceback
-	    traceback.print_exc()
-	    #traceback.print_tb(sys.exc_traceback)
-	    #print(desc)
+            if lib.__doc__:
+                setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
+        except (ImportError, AttributeError) as desc:
+            print('Exception error: ' + lib.__name__ if lib else '')
+            import traceback
+            traceback.print_exc()
+            #traceback.print_tb(sys.exc_traceback)
+            #print(desc)
 
     def bash(self, argstr):
         try:
@@ -423,8 +424,8 @@ class Shellista(cmd.Cmd):
     def precmd_plugin(cls, func):
         cls.PRECMD_PLUGINS.append(func)
         print cls.PRECMD_PLUGINS
-    
-    @classmethod    
+
+    @classmethod
     def postcmd_plugin(cls, func):
         cls.POSTCMD_PLUGINS.append(func)
 
@@ -434,7 +435,7 @@ class Shellista(cmd.Cmd):
             line = plugin(self, line)
         line = cmd.Cmd.precmd(self, line)
         return line
-        
+
     def postcmd(self, stop, line):
         plugins = self.POSTCMD_PLUGINS
         for plugin in plugins:
@@ -470,5 +471,3 @@ if __name__ == '__main__':
         _check_for_plugins()
         shell = Shellista()
         shell.cmdloop()
-    
-
