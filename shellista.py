@@ -349,7 +349,7 @@ class Shellista(cmd.Cmd):
 
     def _hook_plugin_main(self, root, path):
 	try:
-
+            print 'root:{0} path:{1}'.format(root, path)
 	    lib = importlib.import_module(root[2:].replace('/','.')+'.'+path)
 	    name = 'do_'+path.lower().replace('_plugin','')
 	    if self.addCmdList(path.lower()):
