@@ -32,17 +32,6 @@ import sys
 #   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
-# You can skip over reading this class, if you like.
-# It's an implementation of mine of the bash parser in pure python
-# This has advantages over shlex, glob, and shlex->glob in that it expects
-# the strings to represent files from the start.
-
-#PLUGINS_URL='https://github.com/briarfox/ShellistaExt/archive/master.tar.gz#module_name=plugins&module_path=ShellistaExt-master/ShellistaExt/plugins&move_to=.'
-
-#PLUGINS_URL='https://github.com/transistor1/shellista-hybrid/archive/master.tar.gz#module_name=plugins&module_path=shellista-hybrid-master/plugins&move_to=.'
-
-#PLUGINS_URL='https://github.com/transistor1/shellista/archive/master.tar.gz#module_name=plugins&module_path=shellista-master&move_to=./plugins'
-
 shell = None
 
 PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
@@ -125,10 +114,6 @@ class ModuleInstaller():
     def _global_import(self, modulename):
         module = importlib.import_module(modulename)
         globals()[modulename] = module
-
-        #module = __import__(modulename, globals(), locals())
-        #globals()[modulename]=module
-        #sys.modules[modulename] = module
 
     def _get_file_dir(self):
         return os.path.dirname(os.path.abspath(__file__))
@@ -349,8 +334,6 @@ class Shellista(cmd.Cmd):
             try:
                 lib = None
                 
-                #print 'root: {0}\npath:{1}\ncurdir:{2}\n'.format(root, path, os.getcwd())
-                
                 #Strip path.
                 #TODO: Remove filesystem-specific path stuff
                 if root[:2] == './':
@@ -379,13 +362,10 @@ class Shellista(cmd.Cmd):
             except (ImportError, AttributeError) as desc:
                 print('Exception error: ' + lib.__name__ if lib else '')
                 import traceback
-                traceback.print_exc()
-                #traceback.print_tb(sys.exc_traceback)
-                #print(desc)
+                print(desc)
 
     def bash(self, argstr):
         try:
-            #print self._bash.parse('. ' + argstr)[1:]
             return self._bash.parse('. ' + argstr)[1:]
         except SyntaxError, e:
             print "Syntax Error: %s" % e
@@ -393,8 +373,6 @@ class Shellista(cmd.Cmd):
 
     def _CmdGenerator(self, function):
         def CmdProxy(self, line):
-            #args = [name]
-            #args.extend(shlex.split(line))
             function(self, line)
             self.getPrompt()
 
