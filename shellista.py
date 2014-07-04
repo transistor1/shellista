@@ -47,6 +47,7 @@ shell = None
 
 PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
 GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
+GIT_PLUGIN_GIT='https://github.com/transistor1/shellista-git.git'
 PLUGINS_PLUGIN_GIT='https://github.com/transistor1/shellista-plugins.git'
 
 #Imports for ModuleInstaller
@@ -175,7 +176,6 @@ class ModuleInstaller():
         zfile = zipfile.ZipFile(name)
         zfile.extractall(to)
 
-
     def try_import(self):
         self._add_module_path()
         self._global_import(self.module_name)
@@ -249,15 +249,6 @@ class ModuleInstaller():
                 os.rename(src, new_name)
                 src = new_name
 
-            #move_to = self.move_to
-
-            #Strip leading slash, if any
-            #if move_to.startswith(os.pathsep):
-            #    monew_nameve_to = move_to[1:]
-
-            #Absolute path where the modules will be installed
-            #dst = os.path.join(self.install_root, self.move_to)
-
             dst = self.full_install_path
 
             if not os.path.exists(dst):
@@ -306,13 +297,10 @@ def _check_for_plugins():
         installer._touch_file(os.path.join(ext_dir, '__init__.py'))
 
         installer = ModuleInstaller(GIT_URL)
-        installer.module_install(post_install_hook=_do_checkout())
+        installer.module_install()
 
         #Clone the plugins repo
         _do_clone('plugin', PLUGINS_PLUGIN_GIT)
-
-def _do_checkout():
-    pass
 
 def _do_clone(extension_name, url):
     import plugins.extensions.git.git_plugin as git
