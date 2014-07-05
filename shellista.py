@@ -330,7 +330,7 @@ class Shellista(cmd.Cmd):
 
     def _hook_plugin_main(self, root, path):
         #Change directory, changing back to old dir when finished
-        with _context_chdir(os.path.dirname(__file__)):
+        with _context_chdir(os.path.dirname(os.path.abspath(__file__))):
             try:
                 lib = None
                 
