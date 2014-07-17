@@ -34,9 +34,11 @@ import sys
 
 shell = None
 
-PLUGINS_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
+CORE_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
 GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
 GIT_PLUGIN_GIT='https://github.com/transistor1/shellista-git.git'
+#CORE_PLUGIN_GIT='https://github.com/transistor1/shellista-core.git'
+CORE_PLUGIN_GIT='https://github.com/transistor1/test-repo.git'
 PLUGINS_PLUGIN_GIT='https://github.com/transistor1/shellista-plugins.git'
 
 #Imports for ModuleInstaller
@@ -268,34 +270,54 @@ class ModuleInstaller():
 def _check_for_plugins():
     plugins_parent = os.path.join(os.path.dirname(__file__))
     plugins_dir = os.path.join(plugins_parent, 'plugins')
+    extensions_dir = os.path.join(plugins_dir,'extensions')
+    git_dir = os.path.join(extensions_dir,'git')
+    plugins_plugin_dir = os.path.join(extensions_dir,'plugins')
+    
     if not os.path.exists(plugins_dir):
         print 'Downloading plugins...'
-        #os.mkdir('plugins')
-        installer = ModuleInstaller(PLUGINS_URL)
+        #Do not create plugins folder yet, bootstrapping core will do that
+        
+        #Bootstrap core module - it is needed by Git
+        installer = ModuleInstaller(CORE_URL)
         installer.module_install()
-
-        #Create the extensions dir
-        ext_dir = os.path.join(plugins_parent, 'plugins', 'extensions')
-        os.mkdir(ext_dir)
-
-        #Add an __init__.py file in extensions
-        installer._touch_file(os.path.join(ext_dir, '__init__.py'))
-
+        
+        #Create plugins/extensions
+        os.makedirs(extensions_dir)
+        
+        #Create __init__.py files
+        installer._touch_file(os.path.join(extensions_dir, '__init__.py'))
+        installer._touch_file(os.path.join(plugins_dir, '__init__.py'))
+        installer._touch_file(os.path.join(plugins_parent, '__init__.py'))
+        
+        #Now bootstrap the Git module
         installer = ModuleInstaller(GIT_URL)
         installer.module_install()
+        
+        #Clone the core repo to make it eligible for upgrades
+        global git
+        import plugins.extensions.git.git_plugin as git
+        
+        with _context_chdir(plugins_dir):
+            try:
+                _do_clone(CORE_PLUGIN_GIT)
+            except:
+                print 'Couldn\'t git clone core (already cloned?)'
 
         #Clone the plugins repo
-        _do_clone('plugin', PLUGINS_PLUGIN_GIT)
+        os.mkdir(plugins_plugin_dir)
+        with _context_chdir(plugins_plugin_dir):
+            _do_clone(PLUGINS_PLUGIN_GIT)
+            
+        #Clone git to make it eligible for update
+        with _context_chdir(git_dir):
+            _do_clone(GIT_PLUGIN_GIT)
 
-def _do_clone(extension_name, url):
-    import plugins.extensions.git.git_plugin as git
-    dir_name = os.path.join('plugins', 'extensions', extension_name)
-    os.mkdir(dir_name)
-    with _context_chdir(dir_name):
-        git.do_git('clone {0}'.format(url))
+def _do_clone(url):
+    git.do_git('clone {0}'.format(url))
         
 @contextlib.contextmanager
-def _context_chdir(new_path, create_path=False):
+def _context_chdir(new_path):
     '''Change directories, saving the old path. To be used in
          a with statement'''
     os._old_path = os.getcwd()
