@@ -34,11 +34,11 @@ import sys
 
 shell = None
 
-CORE_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core*/shellista-core&move_to=.'
+CORE_URL='https://github.com/transistor1/shellista-core/archive/master.zip#module_name=plugins&module_path=shellista-core-master&move_to=.'
 GIT_URL='https://github.com/transistor1/shellista-git/archive/master.zip#module_name=git&module_path=shellista-git*&move_to=plugins/extensions'
 GIT_PLUGIN_GIT='https://github.com/transistor1/shellista-git.git'
-#CORE_PLUGIN_GIT='https://github.com/transistor1/shellista-core.git'
-CORE_PLUGIN_GIT='https://github.com/transistor1/test-repo.git'
+CORE_PLUGIN_GIT='https://github.com/transistor1/shellista-core.git'
+#CORE_PLUGIN_GIT='https://github.com/transistor1/test-repo.git'
 PLUGINS_PLUGIN_GIT='https://github.com/transistor1/shellista-plugins.git'
 
 #Imports for ModuleInstaller
