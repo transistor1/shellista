@@ -376,7 +376,16 @@ class Shellista(cmd.Cmd):
     
                 except (ImportError, AttributeError) as desc:
                     pass
-    
+                try:
+                	for hook in lib.precmdhook:
+                		self.precmd_plugin(hook)
+                except (AttributeError) as desc:
+                	pass
+                try:
+                	for hook in lib.postcmdhook:
+                		self.postcmd_plugin(hook)
+                except (AttributeError) as desc:
+                	pass
     
     
                 if lib.__doc__:
@@ -428,7 +437,7 @@ class Shellista(cmd.Cmd):
     @classmethod
     def precmd_plugin(cls, func):
         cls.PRECMD_PLUGINS.append(func)
-        print cls.PRECMD_PLUGINS
+
 
     @classmethod
     def postcmd_plugin(cls, func):
@@ -470,3 +479,4 @@ if __name__ == '__main__':
         _check_for_plugins()
         shell = Shellista()
         shell.cmdloop()
+    
