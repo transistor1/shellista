@@ -328,7 +328,11 @@ class Shellista(cmd.Cmd):
 
 
         cmd.Cmd.__init__(self)
-        os.chdir(os.path.expanduser('~/Documents'))
+        try:
+            import editor
+            os.chdir(os.path.dirname(editor.get_path()))
+        except :
+            os.chdir(os.path.expanduser('~'))
         self.getPrompt()
 
     def bash(self, argstr):
