@@ -193,7 +193,7 @@ class ModuleInstaller():
                         if progress_func:
                             progress_func(total)
         except Exception as e:
-            raise ModuleDownloadException(e)
+            raise #ModuleDownloadException(e)
             #print 'Download error: ', e
 
     def module_install(self, progress_func=None, overwrite_existing=False,
@@ -273,31 +273,31 @@ def _check_for_plugins():
     extensions_dir = os.path.join(plugins_dir,'extensions')
     git_dir = os.path.join(extensions_dir,'git')
     plugins_plugin_dir = os.path.join(extensions_dir,'plugins')
-    
+
     if not os.path.exists(plugins_dir):
         print 'Downloading plugins...'
         #Do not create plugins folder yet, bootstrapping core will do that
-        
+
         #Bootstrap core module - it is needed by Git
         installer = ModuleInstaller(CORE_URL)
         installer.module_install()
-        
+
         #Create plugins/extensions
         os.makedirs(extensions_dir)
-        
+
         #Create __init__.py files
         installer._touch_file(os.path.join(extensions_dir, '__init__.py'))
         installer._touch_file(os.path.join(plugins_dir, '__init__.py'))
         installer._touch_file(os.path.join(plugins_parent, '__init__.py'))
-        
+
         #Now bootstrap the Git module
         installer = ModuleInstaller(GIT_URL)
         installer.module_install()
-        
+
         #Clone the core repo to make it eligible for upgrades
         global git
         import plugins.extensions.git.git_plugin as git
-        
+
         with _context_chdir(plugins_dir):
             try:
                 _do_clone(CORE_PLUGIN_GIT)
@@ -308,14 +308,14 @@ def _check_for_plugins():
         os.mkdir(plugins_plugin_dir)
         with _context_chdir(plugins_plugin_dir):
             _do_clone(PLUGINS_PLUGIN_GIT)
-            
+
         #Clone git to make it eligible for update
         with _context_chdir(git_dir):
             _do_clone(GIT_PLUGIN_GIT)
 
 def _do_clone(url):
     git.do_git('clone {0}'.format(url))
-        
+
 @contextlib.contextmanager
 def _context_chdir(new_path):
     '''Change directories, saving the old path. To be used in
@@ -324,7 +324,7 @@ def _context_chdir(new_path):
     os.chdir(new_path)
     yield
     os.chdir(os._old_path)
-    
+
 class Shellista(cmd.Cmd):
     PRECMD_PLUGINS = []
     POSTCMD_PLUGINS = []
@@ -333,7 +333,7 @@ class Shellista(cmd.Cmd):
     #    plugin to manage settings
     settings = {}
 
-    def __init__(self):
+    def __init__(self, stdin=sys.stdin, stdout=sys.stdout):
         self.did_quit = False
         self.cmdList = ['quit','exit','logoff','logout',]
         #self._bash = BetterParser()
@@ -346,12 +346,15 @@ class Shellista(cmd.Cmd):
                 if extension == '.py' and path != '__init__' and '_plugin' in path:
                     self._hook_plugin_main(root, path)
 
-        cmd.Cmd.__init__(self)
+        cmd.Cmd.__init__(self, stdin=stdin, stdout=stdout)
         try:
             import editor
             os.chdir(os.path.dirname(editor.get_path()))
-        except :
-            os.chdir(os.path.expanduser('~'))
+        except Exception:
+            try:
+                os.chdir(os.path.dirname(sys.argv[0]))
+            except Exception:
+                os.chdir(os.path.expanduser('~'))
         self.getPrompt()
 
     def _hook_plugin_main(self, root, path):
@@ -359,17 +362,17 @@ class Shellista(cmd.Cmd):
         with _context_chdir(os.path.dirname(os.path.abspath(__file__))):
             try:
                 lib = None
-                
+
                 #Strip path.
                 #TODO: Remove filesystem-specific path stuff
                 if root[:2] == './':
                     root = root[2:]
-                    
+
                 lib = importlib.import_module(root.replace('/','.') + '.' + path)
                 name = 'do_' + path.lower().replace('_plugin','')
                 if self.addCmdList(path.lower()):
                     setattr(Shellista, name, self._CmdGenerator(lib.main))
-    
+
                 try:
                     for a in lib.alias:
                     #pass
@@ -377,27 +380,27 @@ class Shellista(cmd.Cmd):
                             parent = path.lower().replace('_plugin','')
                             setattr(Shellista,'do_' + a.lower(),self._aliasGenerator(getattr(self,name)))
                             setattr(Shellista,'help_' + a.lower(),self._HelpGenerator('Alias for: %s. Please use help on %s for usage.' % (parent,parent)))
-    
+
                 except (ImportError, AttributeError) as desc:
                     pass
                 try:
-                	for hook in lib.precmdhook:
-                		self.precmd_plugin(hook)
+                    for hook in lib.precmdhook:
+                        self.precmd_plugin(hook)
                 except (AttributeError) as desc:
-                	pass
+                    pass
                 try:
-                	for hook in lib.postcmdhook:
-                		self.postcmd_plugin(hook)
+                    for hook in lib.postcmdhook:
+                        self.postcmd_plugin(hook)
                 except (AttributeError) as desc:
-                	pass
-    
-    
+                    pass
+
+
                 if lib.__doc__:
                     setattr(Shellista, 'help_' + path.lower().replace('_plugin',''), self._HelpGenerator(lib.__doc__))
             except (ImportError, AttributeError) as desc:
                 print('Exception error: ' + lib.__name__ if lib else '')
-                import traceback
                 print(desc)
+                raise
 
     def bash(self, argstr):
         try:
@@ -471,9 +474,9 @@ class Shellista(cmd.Cmd):
     def getPrompt(self):
         prompt = os.path.relpath(os.getcwd(),os.path.expanduser('~'))
         if prompt == '.':
-            self.prompt = '</ >'
+            self.prompt = '<~ > '
         else:
-            self.prompt = '</'+prompt + ' >'
+            self.prompt = '<~/'+prompt + ' > '
 
     def emptyline(self):
         pass
@@ -483,4 +486,3 @@ if __name__ == '__main__':
         _check_for_plugins()
         shell = Shellista()
         shell.cmdloop()
-    
