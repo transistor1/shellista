@@ -193,7 +193,7 @@ class ModuleInstaller():
                         if progress_func:
                             progress_func(total)
         except Exception as e:
-            raise #ModuleDownloadException(e)
+            raise ModuleDownloadException(e)
             #print 'Download error: ', e
 
     def module_install(self, progress_func=None, overwrite_existing=False,
@@ -400,7 +400,7 @@ class Shellista(cmd.Cmd):
             except (ImportError, AttributeError) as desc:
                 print('Exception error: ' + lib.__name__ if lib else '')
                 print(desc)
-                raise
+                #raise
 
     def bash(self, argstr):
         try:
