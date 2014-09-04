@@ -187,10 +187,15 @@ class ShellistaUI(object):
     
     def flush(self):
         lines = self.out_buf.splitlines(True)
-        itext = self.inp.text[len(self.in_prompt):]
-        self.in_prompt = lines[-1]
-        self.out.text = "".join(lines[:-1])
-        self.inp.text = self.in_prompt + itext
+        if lines[-1][-1] == "\n":
+            self.in_prompt = ""
+            self.inp.text = ""
+            self.out.text = "".join(lines)[:-1]
+        else:
+            itext = self.inp.text[len(self.in_prompt):]
+            self.in_prompt = lines[-1]
+            self.out.text = "".join(lines[:-1])[:-1]
+            self.inp.text = self.in_prompt + itext
         #self.out_buf = ""
         self.out.content_offset = (0, self.out.content_size[1] - self.out.height)
     
